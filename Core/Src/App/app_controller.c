@@ -9,10 +9,17 @@
 
 #include "App/app_controller.h"
 #include "Display/display.h"
+#include "App/app_states.h"
+#include "Services/soft_timer.h"
+
+app_state_t app_state = APP_STATE_INIT;
+soft_timer_t battery_update_timer;
+const uint32_t battery_update_period = 15000;
 
 void app_init(){
 	display_init();
 	display_clear();
+	soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
 //	char string[5];
 //
 //	SSD1306_GotoXY (0,0);
@@ -28,28 +35,26 @@ void app_init(){
 }
 
 void app_process() {
-	for (uint8_t num=0; num<=100; num+=10) {
-		display_top_bar(num);
-		HAL_Delay(1000);
+	switch (app_state) {
+	case APP_STATE_INIT:
+		// TODO: Here should be a voltage reading
+		display_top_bar(50);
+		app_state = APP_STATE_ACTIVE_UI;
+		break;
+	case APP_STATE_ACTIVE_UI:
+		if (soft_timer_expired(&battery_update_timer)){
+			// TODO: Here should be a voltage reading
+			display_top_bar(50);
+			soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
+		}
+		break;
+	case APP_STATE_DONE:
+	case APP_STATE_ERROR:
+	case APP_STATE_IDLE:
+	case APP_STATE_LID_OPEN:
+	case APP_STATE_PAUSED:
+	case APP_STATE_READY:
+	case APP_STATE_RUNNING:
 	}
-//	for (int num=1;num<=1000;num++)
-//	{
-//		itoa(num,string, 10);
-//		SSD1306_GotoXY (0, 30);
-//		SSD1306_Puts ("             ", &Font_16x26, 1);
-//		SSD1306_UpdateScreen();
-//		if(num<10) {
-//			SSD1306_GotoXY (53, 30);  // 1 DIGIT
-//		}
-//		else if (num<100) {
-//			SSD1306_GotoXY (45, 30);  // 2 DIGITS
-//		}
-//		else  {
-//			SSD1306_GotoXY (37, 30);  // 3 DIGITS
-//		}
-//		SSD1306_Puts (string, &Font_16x26, 1);
-//		SSD1306_UpdateScreen();
-//		HAL_Delay (500);
-//	}
 }
 
