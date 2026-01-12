@@ -23,8 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "fonts.h"
-#include "ssd1306.h"
+#include "App/app_controller.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +55,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void clear_display(){
-	SSD1306_Fill(SSD1306_COLOR_BLACK);
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -92,45 +89,14 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  SSD1306_Init();
-  char string[5];
-
-  SSD1306_GotoXY (0,0);
-  SSD1306_Puts ("SSD1306", &Font_11x18, 1);
-  SSD1306_GotoXY (0, 30);
-  SSD1306_Puts ("OLED DEMO", &Font_11x18, 1);
-  SSD1306_UpdateScreen();
-  HAL_Delay (1000);
-
-  HAL_Delay(3000);
-  clear_display();
-  SSD1306_GotoXY (30,0);
-  SSD1306_Puts ("COUNTER", &Font_11x18, 1);
+  app_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  for (int num=1;num<=1000;num++)
-	  {
-		itoa(num,string, 10);
-		SSD1306_GotoXY (0, 30);
-		SSD1306_Puts ("             ", &Font_16x26, 1);
-		SSD1306_UpdateScreen();
-		if(num<10) {
-			SSD1306_GotoXY (53, 30);  // 1 DIGIT
-		}
-		else if (num<100) {
-			SSD1306_GotoXY (45, 30);  // 2 DIGITS
-		}
-		else  {
-			SSD1306_GotoXY (37, 30);  // 3 DIGITS
-		}
-		SSD1306_Puts (string, &Font_16x26, 1);
-		SSD1306_UpdateScreen();
-		HAL_Delay (500);
-	}
+	  app_process();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
