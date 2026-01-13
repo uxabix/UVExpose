@@ -11,12 +11,17 @@
 #include "Display/ssd1306.h"
 #include "Display/fonts.h"
 
+#define MENU_TEXT &Font_7x10, SSD1306_COLOR_WHITE
+#define MENU_TEXT_HEIGHT 10
+#define MENU_TEXT_WIDTH 7
+#define MENU_PADDING 1
+
 bool burnout_protection = true;
 
 uint8_t screen_width = 128;
 uint8_t screen_height = 64;
 
-uint8_t top_bar_height = 14;
+uint8_t top_bar_height = 8;
 uint8_t top_bar_padding = 1;
 
 uint8_t battery_pos_x = 0;
@@ -41,12 +46,30 @@ void display_clear_top_bar() {
 	SSD1306_DrawFilledRectangle(0, 0, screen_width, top_bar_height, SSD1306_COLOR_BLACK);
 }
 
+void display_clear_main_frame() {
+	SSD1306_DrawFilledRectangle(0, top_bar_height + 1, screen_width, screen_height, SSD1306_COLOR_BLACK);
+}
+
 void display_timer() {
 
 }
 
-void display_menu() {
+void display_menu(char (*options_list)[10], uint8_t options_count, uint8_t selected, uint8_t show_from) {
+	display_clear_main_frame();
+	char* current_option;
+	uint16_t total_height = 2 + (MENU_TEXT_HEIGHT + 2) * options_count;
+	uint8_t available_height = screen_height - top_bar_height;
+	uint8_t current_y = top_bar_height + 1 + (available_height - total_height) / 2;
+	if (total_height > available_height){
 
+	}
+	for (uint8_t i=0; i < options_count; i++) {
+		SSD1306_GotoXY(MENU_PADDING, current_y);
+		current_y += MENU_TEXT_HEIGHT + MENU_PADDING;
+		current_option = options_list[i];
+		SSD1306_Puts(current_option, MENU_TEXT);
+	}
+	SSD1306_UpdateScreen();
 }
 
 void display_battery(uint8_t percent) { // Percent - number from 0 to 100

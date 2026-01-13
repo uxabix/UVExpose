@@ -14,12 +14,12 @@
 
 app_state_t app_state = APP_STATE_INIT;
 soft_timer_t battery_update_timer;
-const uint32_t battery_update_period = 15000;
+const uint32_t battery_update_period = 15000;  // 15 seconds
 
 void app_init(){
 	display_init();
 	display_clear();
-	soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
+	soft_timer_start(&battery_update_timer, battery_update_period);
 //	char string[5];
 //
 //	SSD1306_GotoXY (0,0);
@@ -47,6 +47,13 @@ void app_process() {
 			display_top_bar(50);
 			soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
 		}
+		char sample_menu[][10] = {
+		    "Opt1",
+		    "Longer",
+		    "o3",
+			"Opt4"
+		};
+		display_menu(sample_menu, 4, 0, 0);
 		break;
 	case APP_STATE_DONE:
 	case APP_STATE_ERROR:
