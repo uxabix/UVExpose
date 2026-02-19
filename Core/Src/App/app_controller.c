@@ -16,10 +16,15 @@ app_state_t app_state = APP_STATE_INIT;
 soft_timer_t battery_update_timer;
 const uint32_t battery_update_period = 15000;  // 15 seconds
 
+soft_timer_t display_update_timer;
+const uint32_t display_update_period = 2000;
+
 void app_init(){
 	display_init();
 	display_clear();
 	soft_timer_start(&battery_update_timer, battery_update_period);
+	soft_timer_start(&display_update_timer, display_update_period);
+
 //	char string[5];
 //
 //	SSD1306_GotoXY (0,0);
@@ -33,7 +38,7 @@ void app_init(){
 //	SSD1306_GotoXY (30,0);
 //	SSD1306_Puts ("COUNTER", &Font_11x18, 1);
 }
-
+int choice = 0;
 void app_process() {
 	switch (app_state) {
 	case APP_STATE_INIT:
@@ -47,13 +52,25 @@ void app_process() {
 			display_top_bar(50);
 			soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
 		}
-		char sample_menu[][10] = {
+		if (soft_timer_expired(&display_update_timer)) {
+			choice++;
+			if (choice > 7) {
+				choice = 0;
+			}
+			soft_timer_start(&display_update_timer, display_update_period);
+		}
+
+		char sample_menu[][16] = {
 		    "Opt1",
 		    "Longer",
 		    "o3",
-			"Opt4"
+			"Opt4",
+			"More options",
+			"And another one",
+			"One more",
+			"Last one"
 		};
-		display_menu(sample_menu, 4, 0, 0);
+		display_menu(sample_menu, 8, choice, choice);
 		break;
 	case APP_STATE_DONE:
 	case APP_STATE_ERROR:
