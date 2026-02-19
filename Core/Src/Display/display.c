@@ -41,7 +41,7 @@ const uint8_t battery_protection_step_y = 1;
 const uint8_t battery_segment_height = 6;
 const uint8_t battery_segment_width = 4;
 
-// For menu
+// Display Menu configuration
 const uint8_t HIGHLIGHT_PADDING_X = 2;
 const uint8_t HIGHLIGHT_PADDING_Y = 1;
 const uint8_t SCROLLBAR_WIDTH = 4;
@@ -62,6 +62,21 @@ typedef struct {
     uint8_t clamped_scroll_offset; // The scroll_offset after clamping
 } MenuLayout_t;
 
+
+// Display Timer configuration
+#define TIMER_FONT &Font_16x26 // Or define a new font
+#define TIMER_TEXT_HEIGHT 26 // Or define a new height
+#define TIMER_TEXT_WIDTH 16 // Or define a new width
+#define TIMER_FLOAT_STEP_X 1 // Pixels to move per update
+#define TIMER_FLOAT_STEP_Y 1 // Pixels to move per update
+#define TIMER_FLOAT_MARGIN 5 // Margin from display area edges
+
+// Static variables for floating text position
+static int16_t timer_current_x = -1; // -1 indicates uninitialized
+static int16_t timer_current_y = -1;
+static int8_t timer_dx = TIMER_FLOAT_STEP_X;
+static int8_t timer_dy = TIMER_FLOAT_STEP_Y;
+
 void display_init() {
 	SSD1306_Init();
 	battery_pos_x = top_bar_padding;
@@ -81,8 +96,65 @@ void display_clear_main_frame() {
 	SSD1306_DrawFilledRectangle(0, top_bar_height - 1, screen_width, screen_height - top_bar_height, SSD1306_COLOR_BLACK);
 }
 
-void display_timer() {
+void display_timer_remaining(uint32_t remaining_ms) {
+    char time_str[6]; // MM:SS\0 (e.g., "00:00")
+    uint32_t total_seconds = remaining_ms / 1000;
+    uint8_t minutes = total_seconds / 60;
+    uint8_t seconds = total_seconds % 60;
 
+    sprintf(time_str, "%02d:%02d", minutes, seconds);
+
+    uint16_t text_width = strlen(time_str) * TIMER_TEXT_WIDTH;
+    uint8_t text_height = TIMER_TEXT_HEIGHT;
+
+    // Define the floating area boundaries
+    uint8_t float_area_min_x = TIMER_FLOAT_MARGIN;
+    uint8_t float_area_max_x = screen_width - TIMER_FLOAT_MARGIN - text_width;
+    uint8_t float_area_min_y = top_bar_height + TIMER_FLOAT_MARGIN;
+    uint8_t float_area_max_y = screen_height - TIMER_FLOAT_MARGIN - text_height;
+
+    // Initialize position if not already set
+    if (timer_current_x == -1 || timer_current_y == -1) {
+        timer_current_x = (float_area_min_x + float_area_max_x) / 2;
+        timer_current_y = (float_area_min_y + float_area_max_y) / 2;
+    }
+
+    // Update position
+    timer_current_x += timer_dx;
+    timer_current_y += timer_dy;
+
+    // Check boundaries and reverse direction
+    if (timer_current_x < float_area_min_x) {
+        timer_current_x = float_area_min_x;
+        timer_dx = TIMER_FLOAT_STEP_X;
+    } else if (timer_current_x > float_area_max_x) {
+        timer_current_x = float_area_max_x;
+        timer_dx = -TIMER_FLOAT_STEP_X;
+    }
+
+    if (timer_current_y < float_area_min_y) {
+        timer_current_y = float_area_min_y;
+        timer_dy = TIMER_FLOAT_STEP_Y;
+    } else if (timer_current_y > float_area_max_y) {
+        timer_current_y = float_area_max_y;
+        timer_dy = -TIMER_FLOAT_STEP_Y;
+    }
+
+    // Clear the main frame before drawing to avoid trails
+    display_clear_main_frame();
+
+    // Draw the time string
+    SSD1306_GotoXY(timer_current_x, timer_current_y);
+    SSD1306_Puts(time_str, TIMER_FONT, SSD1306_COLOR_WHITE);
+
+    // SSD1306_UpdateScreen() will be called by the caller (e.g., app_process)
+    // or if this is the only thing on screen, it can be called here.
+    // Given the context, display_menu calls it, display_top_bar calls it.
+    // So, it's better to call it here if this function is the primary display update.
+    // If it's part of a larger update cycle, the caller should call it.
+    // The prompt says "вызываться она будет раз в секунду из другого файла - т.е. она не ответсвенна за отслеживание обновлений на таймере"
+    // This implies it's a standalone drawing function. So, it should call UpdateScreen.
+    SSD1306_UpdateScreen();
 }
 
 // Helper function to calculate menu layout parameters
