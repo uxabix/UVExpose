@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #include "Services/soft_timer.h"
+#include "stm32f1xx_hal.h"
 
 void soft_timer_start(soft_timer_t* t, uint32_t ms)
 {

@@ -8,6 +8,8 @@
 #ifndef INC_SOFT_TIMER_H_
 #define INC_SOFT_TIMER_H_
 
+#include <stdbool.h>
+
 typedef struct {
     uint32_t start;
     uint32_t duration;

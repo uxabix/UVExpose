@@ -26,21 +26,28 @@ void Encoder_Init(void)
 encoder_direction_t Encoder_GetDirection(void)
 {
     static int16_t last = 0;
-    int16_t current = __HAL_TIM_GET_COUNTER(&htim2);
+    static int8_t accumulator = 0;
 
-    if(current > last)
+    int16_t current = __HAL_TIM_GET_COUNTER(&htim2);
+    int16_t diff = current - last;
+    last = current;
+
+    accumulator += diff;
+
+    if(accumulator >= 4)
     {
-        last = current;
+        accumulator = 0;
         return ENCODER_CW;
     }
-    else if(current < last)
+    else if(accumulator <= -4)
     {
-        last = current;
+        accumulator = 0;
         return ENCODER_CCW;
     }
 
     return ENCODER_NONE;
 }
+
 
 void Encoder_ButtonTask(void)
 {

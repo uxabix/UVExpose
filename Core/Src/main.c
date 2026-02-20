@@ -91,14 +91,14 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  app_init();
+  App_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  app_process();
+	  App_Process();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

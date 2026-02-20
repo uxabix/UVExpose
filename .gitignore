@@ -6,6 +6,7 @@
 /.settings/
 /Debug/
 /Release/
+.vscode/
 
 # Build artifacts
 *.o
