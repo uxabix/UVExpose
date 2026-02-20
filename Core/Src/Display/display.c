@@ -62,6 +62,7 @@ typedef struct {
     uint8_t clamped_scroll_offset; // The scroll_offset after clamping
 } MenuLayout_t;
 
+#define INVALID_COLUMN_INDEX 255
 
 // Display Timer configuration
 #define TIMER_FONT &Font_16x26 // Or define a new font
@@ -147,13 +148,6 @@ void display_timer_remaining(uint32_t remaining_ms) {
     SSD1306_GotoXY(timer_current_x, timer_current_y);
     SSD1306_Puts(time_str, TIMER_FONT, SSD1306_COLOR_WHITE);
 
-    // SSD1306_UpdateScreen() will be called by the caller (e.g., app_process)
-    // or if this is the only thing on screen, it can be called here.
-    // Given the context, display_menu calls it, display_top_bar calls it.
-    // So, it's better to call it here if this function is the primary display update.
-    // If it's part of a larger update cycle, the caller should call it.
-    // The prompt says "вызываться она будет раз в секунду из другого файла - т.е. она не ответсвенна за отслеживание обновлений на таймере"
-    // This implies it's a standalone drawing function. So, it should call UpdateScreen.
     SSD1306_UpdateScreen();
 }
 
@@ -236,35 +230,69 @@ static uint16_t display_menu_preprocess_items(char (*options_list)[16], uint8_t 
 }
 
 // Helper function to draw menu items and highlights
-static void display_menu_draw_items(char display_strings[][16 + 1], uint8_t options_count, uint8_t selected, MenuLayout_t* layout, uint16_t current_max_item_text_width) {
-    // Calculate width and X-position for the uniform highlight rectangle
+static void display_menu_draw_items_with_column(
+    char display_strings[][16 + 1],
+    uint8_t options_count,
+    uint8_t selected,
+    MenuLayout_t* layout,
+    uint16_t current_max_item_text_width,
+    uint8_t selected_column_index
+) {
     layout->uniform_rect_width = current_max_item_text_width + (2 * HIGHLIGHT_PADDING_X);
     layout->uniform_rect_x = (layout->effective_screen_width - layout->uniform_rect_width) / 2;
-    layout->uniform_rect_x = MAX(0, layout->uniform_rect_x); // Ensure X is not negative
+    layout->uniform_rect_x = MAX(0, layout->uniform_rect_x);
 
     uint8_t current_y = layout->start_y;
 
-    // Iterate through visible menu items
     for (uint8_t i = 0; i < layout->actual_visible_items; i++) {
         uint8_t option_index = layout->clamped_scroll_offset + i;
         char* current_option_to_display = display_strings[i];
         uint16_t current_item_text_width = strlen(current_option_to_display) * MENU_TEXT_WIDTH;
 
-        // Highlight selected item
+        uint8_t text_x = layout->uniform_rect_x + HIGHLIGHT_PADDING_X + (current_max_item_text_width - current_item_text_width) / 2;
+
         if (option_index == selected) {
             uint8_t rect_x = layout->uniform_rect_x;
             uint8_t rect_y = current_y - HIGHLIGHT_PADDING_Y;
             uint8_t rect_width = layout->uniform_rect_width;
             uint8_t rect_height = MENU_TEXT_HEIGHT + (2 * HIGHLIGHT_PADDING_Y);
 
-            // Draw filled rectangle (white color)
+            // Highlight full item
             SSD1306_DrawFilledRectangle(rect_x, rect_y, rect_width, rect_height, SSD1306_COLOR_WHITE);
-            // Draw text in black on white background, centered within the highlight
-            SSD1306_GotoXY(layout->uniform_rect_x + HIGHLIGHT_PADDING_X + (current_max_item_text_width - current_item_text_width) / 2, current_y);
-            SSD1306_Puts(current_option_to_display, MENU_FONT, SSD1306_COLOR_BLACK);
+
+            // If selected_column_index is valid and within the current option text length, highlight that character
+            if (selected_column_index != INVALID_COLUMN_INDEX && selected_column_index < strlen(current_option_to_display)) {
+                // Draw text before the highlighted character in black
+                char tmp[17];
+                strncpy(tmp, current_option_to_display, selected_column_index);
+                tmp[selected_column_index] = '\0';
+                SSD1306_GotoXY(text_x, current_y);
+                SSD1306_Puts(tmp, MENU_FONT, SSD1306_COLOR_BLACK);
+
+                // Draw the highlighted character with inverted colors
+                uint8_t char_x = text_x + selected_column_index * MENU_TEXT_WIDTH;
+                SSD1306_DrawFilledRectangle(char_x, current_y, MENU_TEXT_WIDTH, MENU_TEXT_HEIGHT, SSD1306_COLOR_BLACK);
+
+                // Draw the highlighted character in white on the black background
+                char highlight_char[2] = {current_option_to_display[selected_column_index], '\0'};
+                SSD1306_GotoXY(char_x, current_y);
+                SSD1306_Puts(highlight_char, MENU_FONT, SSD1306_COLOR_WHITE);
+
+                // Draw text after the highlighted character in black
+                uint8_t remaining_len = strlen(current_option_to_display) - (selected_column_index + 1);
+                if (remaining_len > 0) {
+                    SSD1306_GotoXY(char_x + MENU_TEXT_WIDTH, current_y);
+                    SSD1306_Puts(&current_option_to_display[selected_column_index + 1], MENU_FONT, SSD1306_COLOR_BLACK);
+                }
+            } else {
+                // No column highlight, just draw the text in black on the white highlight
+                SSD1306_GotoXY(text_x, current_y);
+                SSD1306_Puts(current_option_to_display, MENU_FONT, SSD1306_COLOR_BLACK);
+            }
+
         } else {
-            // Draw unselected item in white, centered relative to the uniform highlight
-            SSD1306_GotoXY(layout->uniform_rect_x + HIGHLIGHT_PADDING_X + (current_max_item_text_width - current_item_text_width) / 2, current_y);
+            // Not selected, draw normally
+            SSD1306_GotoXY(text_x, current_y);
             SSD1306_Puts(current_option_to_display, MENU_FONT, MENU_COLOR_DEFAULT);
         }
 
@@ -306,9 +334,8 @@ static void display_menu_draw_scrollbar(uint8_t options_count, const MenuLayout_
     }
 }
 
-
 // Main menu display function
-void display_menu(char (*options_list)[16], uint8_t options_count, uint8_t selected, uint8_t scroll_offset) {
+void display_menu_column(char (*options_list)[16], uint8_t options_count, uint8_t selected, uint8_t scroll_offset, uint8_t selected_column_index) {
     display_clear_main_frame();
 
     MenuLayout_t layout;
@@ -323,10 +350,15 @@ void display_menu(char (*options_list)[16], uint8_t options_count, uint8_t selec
     char display_strings[layout.actual_visible_items][16 + 1];
     uint16_t current_max_item_text_width = display_menu_preprocess_items(options_list, options_count, display_strings, &layout);
 
-    display_menu_draw_items(display_strings, options_count, selected, &layout, current_max_item_text_width);
+    display_menu_draw_items_with_column(display_strings, options_count, selected, &layout, current_max_item_text_width, selected_column_index);
     display_menu_draw_scrollbar(options_count, &layout);
 
     SSD1306_UpdateScreen();
+}
+
+// Main menu display function
+void display_menu(char (*options_list)[16], uint8_t options_count, uint8_t selected, uint8_t scroll_offset) {
+    display_menu_column(options_list, options_count, selected, scroll_offset, INVALID_COLUMN_INDEX);
 }
 
 void display_battery(uint8_t percent) { // Percent - number from 0 to 100

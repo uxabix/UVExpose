@@ -18,7 +18,7 @@
 static uint8_t selected_row_index = 0;
 
 static uint8_t edit_time_mode = 0;
-
+static uint8_t time_digit_index = 0; // 0-3: M1 M2 S1 S2
 static uint8_t time_minutes = 15;
 static uint8_t time_seconds = 0;
 
@@ -37,6 +37,8 @@ static char items[ITEM_COUNT][16] = {
     "Start"
 };
 
+// mapping digit index 0-3 (M1 M2 S1 S2) to character position in items[0]
+static const uint8_t time_digit_pos[4] = {6, 7, 9, 10};
 
 // ---------- helpers ----------
 
@@ -88,27 +90,65 @@ static void on_enter(void)
     update_all_items();
 }
 
+static void edit_time(ui_event_t event) {
+    switch(event)
+    {
+        case UI_EVENT_ROTATE_CW:
+            switch(time_digit_index)
+            {
+                case 0: // tens of minutes
+                    time_minutes = ((time_minutes / 10 + 1) % 10) * 10 + (time_minutes % 10);
+                    break;
+                case 1: // units of minutes
+                    time_minutes = (time_minutes / 10) * 10 + ((time_minutes % 10 + 1) % 10);
+                    break;
+                case 2: // tens of seconds
+                    time_seconds = ((time_seconds / 10 + 1) % 6) * 10 + (time_seconds % 10);
+                    break;
+                case 3: // units of seconds
+                    time_seconds = (time_seconds / 10) * 10 + ((time_seconds % 10 + 1) % 10);
+                    break;
+            }
+            format_time();
+            break;
+
+        case UI_EVENT_ROTATE_CCW:
+            switch(time_digit_index)
+            {
+                case 0: // tens of minutes
+                    time_minutes = ((time_minutes / 10 + 9) % 10) * 10 + (time_minutes % 10);
+                    break;
+                case 1: // units of minutes
+                    time_minutes = (time_minutes / 10) * 10 + ((time_minutes % 10 + 9) % 10);
+                    break;
+                case 2: // tens of seconds
+                    time_seconds = ((time_seconds / 10 + 5) % 6) * 10 + (time_seconds % 10);
+                    break;
+                case 3: // units of seconds
+                    time_seconds = (time_seconds / 10) * 10 + ((time_seconds % 10 + 9) % 10);
+                    break;
+            }
+            format_time();
+            break;
+
+        case UI_EVENT_CLICK: // move cursor to next digit
+            time_digit_index = (time_digit_index + 1) % 4;
+            break;
+
+        case UI_EVENT_LONG_CLICK: // exit edit mode
+            edit_time_mode = 0;
+            break;
+
+        default:
+            break;
+    }
+}
+
 static void on_event(ui_event_t event)
 {
     if(edit_time_mode)
     {
-        switch(event)
-        {
-            case UI_EVENT_ROTATE_CW:
-                change_time(+1);
-                break;
-
-            case UI_EVENT_ROTATE_CCW:
-                change_time(-1);
-                break;
-
-            case UI_EVENT_LONG_CLICK:
-                edit_time_mode = 0;
-                break;
-
-            default:
-                break;
-        }
+        edit_time(event);
         return;
     }
 
@@ -150,7 +190,7 @@ static void on_event(ui_event_t event)
                     break;
 
                 case 5:
-                    // Save preset — оставил пустым
+                    // Save preset
                     break;
 
                 case 6:
@@ -170,7 +210,15 @@ static void on_event(ui_event_t event)
 
 static void on_render(void)
 {
-    display_menu(items, ITEM_COUNT, selected_row_index, selected_row_index);
+    if(edit_time_mode && selected_row_index == 0)
+    {
+        uint8_t highlight_pos = time_digit_pos[time_digit_index]; // get correct char index
+        display_menu_column(items, ITEM_COUNT, selected_row_index, selected_row_index, highlight_pos);
+    }
+    else
+    {
+        display_menu(items, ITEM_COUNT, selected_row_index, selected_row_index);
+    }
 }
 
 const menu_t menu_expose_options = {

@@ -15,7 +15,7 @@
 #include "UI/menus/menu_presets.h"
 
 
-static int index = 0;
+static uint8_t index = 0;
 #define ITEM_COUNT 3
 
 static char items[ITEM_COUNT][16] = {
