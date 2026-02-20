@@ -18,14 +18,15 @@ typedef enum
 {
     APP_STATE_INIT = 0,
 
-    APP_STATE_IDLE,        // Waiting for user
-    APP_STATE_ACTIVE_UI,   // Waiting for user input in UI
-    APP_STATE_READY,       // Ready to start exposure
-    APP_STATE_RUNNING,     // Exposure in progress
-	APP_STATE_PAUSED,      // User pause
-	APP_STATE_LID_OPEN,    //
-    APP_STATE_DONE,        // Exposure finished
-    APP_STATE_ERROR        // Any error state
+    APP_STATE_IDLE,         // Waiting for user
+    APP_STATE_ACTIVE_UI,    // Waiting for user input in UI
+    APP_STATE_READY,        // Ready to start exposure
+    APP_STATE_RUNNING,      // Exposure in progress
+	APP_STATE_PAUSED,       // User pause
+	APP_STATE_LID_OPEN,     //
+    APP_STATE_DONE,         // Exposure finished
+    APP_STATE_ERROR,        // Any error state
+    APP_STATE_ENCODER_TEST, // State for encoder testing
 } app_state_t;
 
 typedef enum {
