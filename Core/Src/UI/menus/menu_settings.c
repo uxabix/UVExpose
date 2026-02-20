@@ -11,22 +11,23 @@
 #include "UI/menus/menu_main.h"
 
 #include <stdbool.h>
-#include <string.h>
 
 static uint8_t selected_row_index = 0;
-#define ITEM_COUNT 1
+#define ITEM_COUNT 3
 
 static bool burn_in_protection = true;
+static bool open_lid_protection = true;
 
 static char items[ITEM_COUNT][16] = {
-    "Burn-in prot."
+    "+Burn-in prot.",
+    "Sleep when idle",
+    "+Open lid prot."
 };
 
 static void update_display_text()
 {
-    // This is not very efficient, but simple.
-    strcpy(items[0], "Burn-in: ");
-    strcat(items[0], burn_in_protection ? "On" : "Off");
+    items[0][0] = burn_in_protection ? '+' : '-';
+    items[2][0] = open_lid_protection ? '+' : '-';
 }
 
 static void on_enter(void)
@@ -50,6 +51,11 @@ static void on_event(ui_event_t event)
         case UI_EVENT_CLICK:
             if(selected_row_index == 0) {
                 burn_in_protection = !burn_in_protection;
+                update_display_text();
+            } else if (selected_row_index == 1) {
+
+            } else if (selected_row_index == 2) {
+                open_lid_protection = !open_lid_protection;
                 update_display_text();
             }
             break;

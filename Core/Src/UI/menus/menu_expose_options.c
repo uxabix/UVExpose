@@ -40,6 +40,9 @@ static char items[ITEM_COUNT][16] = {
 // mapping digit index 0-3 (M1 M2 S1 S2) to character position in items[0]
 static const uint8_t time_digit_pos[4] = {6, 7, 9, 10};
 
+static uint8_t scroll_offset = 0; // first visible menu row
+#define VISIBLE_ROWS 4 // adjust to how many rows fit on screen
+
 // ---------- helpers ----------
 
 static void format_time(void)
@@ -87,6 +90,7 @@ static void on_enter(void)
 {
     selected_row_index = 0;
     edit_time_mode = 0;
+    scroll_offset = 0;
     update_all_items();
 }
 
@@ -156,10 +160,18 @@ static void on_event(ui_event_t event)
     {
         case UI_EVENT_ROTATE_CW:
             selected_row_index = (selected_row_index + 1) % ITEM_COUNT;
+            if(selected_row_index >= scroll_offset + VISIBLE_ROWS)
+                scroll_offset = selected_row_index - VISIBLE_ROWS + 1;
+            else if (selected_row_index < scroll_offset)
+                scroll_offset = selected_row_index;
             break;
 
         case UI_EVENT_ROTATE_CCW:
             selected_row_index = (selected_row_index + ITEM_COUNT - 1) % ITEM_COUNT;
+            if(selected_row_index < scroll_offset)
+                scroll_offset = selected_row_index;
+            else if (selected_row_index >= scroll_offset + VISIBLE_ROWS)
+                scroll_offset = selected_row_index - VISIBLE_ROWS + 1;
             break;
 
         case UI_EVENT_CLICK:
@@ -213,11 +225,11 @@ static void on_render(void)
     if(edit_time_mode && selected_row_index == 0)
     {
         uint8_t highlight_pos = time_digit_pos[time_digit_index]; // get correct char index
-        display_menu_column(items, ITEM_COUNT, selected_row_index, selected_row_index, highlight_pos);
+        display_menu_column(items, ITEM_COUNT, selected_row_index, scroll_offset, highlight_pos);
     }
     else
     {
-        display_menu(items, ITEM_COUNT, selected_row_index, selected_row_index);
+        display_menu(items, ITEM_COUNT, selected_row_index, scroll_offset);
     }
 }
 
