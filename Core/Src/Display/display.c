@@ -11,6 +11,7 @@
 #include "Display/display.h"
 #include "Display/ssd1306.h"
 #include "Display/fonts.h"
+#include "config.h"
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -22,30 +23,30 @@
 #define MENU_FONT &Font_7x10
 #define MENU_COLOR_DEFAULT SSD1306_COLOR_WHITE
 #define MENU_TEXT MENU_FONT, MENU_COLOR_DEFAULT
-#define MENU_TEXT_HEIGHT 10
-#define MENU_TEXT_WIDTH 7
-#define MENU_PADDING 1
+#define MENU_TEXT_HEIGHT SCREEN_MENU_TEXT_HEIGHT
+#define MENU_TEXT_WIDTH SCREEN_MENU_TEXT_WIDTH
+#define MENU_PADDING SCREEN_MENU_PADDING
 
-bool burnout_protection = true;
+bool burnout_protection = ENABLE_BURNOUT_PROTECTION;
 
-uint8_t screen_width = 128;
-uint8_t screen_height = 64;
+uint8_t screen_width = SCREEN_WIDTH;
+uint8_t screen_height = SCREEN_HEIGHT;
 
-uint8_t top_bar_height = 9;
-uint8_t top_bar_padding = 1;
+uint8_t top_bar_height = SCREEN_TOP_BAR_HEIGHT;
+uint8_t top_bar_padding = SCREEN_TOP_BAR_PADDING;
 
-uint8_t battery_pos_x = 0;
-uint8_t battery_pos_y = 0;
-const uint8_t battery_protection_step_x = 5;
-const uint8_t battery_protection_step_y = 1;
-const uint8_t battery_segment_height = 6;
-const uint8_t battery_segment_width = 4;
+uint8_t battery_pos_x = SCREEN_BATTERY_POS_X;
+uint8_t battery_pos_y = SCREEN_BATTERY_POS_Y;
+const uint8_t battery_protection_step_x = SCREEN_BATTERY_PROTECTION_STEP_X;
+const uint8_t battery_protection_step_y = SCREEN_BATTERY_PROTECTION_STEP_Y;
+const uint8_t battery_segment_height = SCREEN_BATTERY_SEGMENT_HEIGHT;
+const uint8_t battery_segment_width = SCREEN_BATTERY_SEGMENT_WIDTH;
 
-// Display Menu configuration
-const uint8_t HIGHLIGHT_PADDING_X = 2;
-const uint8_t HIGHLIGHT_PADDING_Y = 1;
-const uint8_t SCROLLBAR_WIDTH = 4;
-const uint8_t SCROLLBAR_MARGIN = 1; // From right side
+// Display Menu configuration - imported from config.h
+const uint8_t HIGHLIGHT_PADDING_X = SCREEN_MENU_HIGHLIGHT_PADDING_X;
+const uint8_t HIGHLIGHT_PADDING_Y = SCREEN_MENU_HIGHLIGHT_PADDING_Y;
+const uint8_t SCROLLBAR_WIDTH = SCREEN_MENU_SCROLLBAR_WIDTH;
+const uint8_t SCROLLBAR_MARGIN = SCREEN_MENU_SCROLLBAR_MARGIN;
 
 // Structure to hold menu layout parameters
 typedef struct {
@@ -64,13 +65,13 @@ typedef struct {
 
 #define INVALID_COLUMN_INDEX 255
 
-// Display Timer configuration
-#define TIMER_FONT &Font_16x26 // Or define a new font
-#define TIMER_TEXT_HEIGHT 26 // Or define a new height
-#define TIMER_TEXT_WIDTH 16 // Or define a new width
-#define TIMER_FLOAT_STEP_X 1 // Pixels to move per update
-#define TIMER_FLOAT_STEP_Y 1 // Pixels to move per update
-#define TIMER_FLOAT_MARGIN 5 // Margin from display area edges
+// Display Timer configuration - imported from config.h
+#define TIMER_FONT &Font_16x26
+#define TIMER_TEXT_HEIGHT SCREEN_TIMER_TEXT_HEIGHT
+#define TIMER_TEXT_WIDTH SCREEN_TIMER_TEXT_WIDTH
+#define TIMER_FLOAT_STEP_X SCREEN_TIMER_FLOAT_STEP_X
+#define TIMER_FLOAT_STEP_Y SCREEN_TIMER_FLOAT_STEP_Y
+#define TIMER_FLOAT_MARGIN SCREEN_TIMER_FLOAT_MARGIN
 
 typedef enum {
     DISPLAY_TEXT_FLOATING,        // Floating within defined area, bouncing off edges

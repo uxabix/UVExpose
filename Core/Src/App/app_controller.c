@@ -6,6 +6,7 @@
 #include "Display/display.h"
 #include "Services/soft_timer.h"
 #include "Services/buzzer.h"
+#include "Safety/safety_manager.h"
 
 // ========== FSM State Machine ==========
 static app_state_t current_state = APP_STATE_INIT;
@@ -154,6 +155,7 @@ void App_Init(void)
     UI_Init();
     Exposure_Init();  // Initialize exposure service
     Buzzer_Init();    // Initialize buzzer service
+    Safety_Init();    // Initialize safety manager (lid sensor)
     app_fsm_init();
     update_battery();
 }
@@ -162,6 +164,7 @@ void App_Process(void)
 {
     update_battery();
     UI_Render();
+    Safety_Process();  // Check lid sensor and react if needed
     Exposure_Process();  // Process exposure service
     Buzzer_Process();    // Process buzzer service
 

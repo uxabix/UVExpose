@@ -10,11 +10,13 @@
 #include "Display/display.h"
 #include "UI/menus/menu_main.h"
 
+#include "config.h"
+
 #include <stdbool.h>
 #include <string.h>
 
 static uint8_t selected_row_index = 0;
-#define ITEM_COUNT 6
+#define ITEM_COUNT 8
 
 static bool burn_in_protection = true;
 static bool open_lid_protection = true;
@@ -36,13 +38,19 @@ static const char* sleep_options[] = {
 };
 
 
+// Thresholds for linear Hall sensor (millivolts), initialized from config defaults
+static uint16_t lid_open_threshold_mv = LID_HALL_OPEN_THRESHOLD_MV;
+static uint16_t lid_close_threshold_mv = LID_HALL_CLOSE_THRESHOLD_MV;
+
 static char items[ITEM_COUNT][16] = {
     "+Burn-in prot.",
     "Sleep after 2m",
     "+Open lid prot.",
     "Beep count:1",
     "Beep dur:300ms",
-    "Beep pause:200m"
+    "Beep pause:200m",
+    "LidOpen:2000mV",
+    " Close:1800mV",
 };
 
 static void update_display_text()
@@ -62,6 +70,10 @@ static void update_display_text()
     snprintf(items[3], sizeof(items[3]), "Beep count:%u", beep_count);
     snprintf(items[4], sizeof(items[4]), "Beep dur:%u", beep_duration);
     snprintf(items[5], sizeof(items[5]), "Beep pause:%u", beep_period);
+
+    // Update lid thresholds display
+    snprintf(items[6], sizeof(items[6]), "LidOpen:%umV", (unsigned)lid_open_threshold_mv);
+    snprintf(items[7], sizeof(items[7]), "  Close:%umV", (unsigned)lid_close_threshold_mv);
 }
 
 static void on_enter(void)
@@ -106,6 +118,16 @@ static void on_event(ui_event_t event)
                 beep_period += 50;
                 if (beep_period > 2000) beep_period = 50;
                 update_display_text();
+            } else if (selected_row_index == 6) {
+                // Lid open threshold: increase by 50mV, wrap at ADC_VREF_MV
+                lid_open_threshold_mv += 50;
+                if (lid_open_threshold_mv > ADC_VREF_MV) lid_open_threshold_mv = 0;
+                update_display_text();
+            } else if (selected_row_index == 7) {
+                // Lid close threshold: increase by 50mV, wrap at ADC_VREF_MV
+                lid_close_threshold_mv += 50;
+                if (lid_close_threshold_mv > ADC_VREF_MV) lid_close_threshold_mv = 0;
+                update_display_text();
             }
             break;
         
@@ -137,6 +159,33 @@ uint16_t menu_settings_get_beep_duration(void)
 uint16_t menu_settings_get_beep_period(void)
 {
     return beep_period;
+}
+
+uint8_t menu_settings_get_open_lid_protection(void)
+{
+    return open_lid_protection ? 1 : 0;
+}
+
+uint16_t menu_settings_get_lid_open_threshold_mv(void)
+{
+    return lid_open_threshold_mv;
+}
+
+uint16_t menu_settings_get_lid_close_threshold_mv(void)
+{
+    return lid_close_threshold_mv;
+}
+
+void menu_settings_set_lid_open_threshold_mv(uint16_t mv)
+{
+    lid_open_threshold_mv = mv;
+    update_display_text();
+}
+
+void menu_settings_set_lid_close_threshold_mv(uint16_t mv)
+{
+    lid_close_threshold_mv = mv;
+    update_display_text();
 }
 
 const menu_t menu_settings = {

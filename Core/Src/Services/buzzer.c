@@ -10,6 +10,7 @@
 #include "Services/soft_timer.h"
 #include "gpio.h"
 #include "main.h"
+#include "config.h"
 
 /**
  * Internal buzzer states
@@ -26,14 +27,14 @@ static buzzer_mode_t current_mode = BUZZER_MODE_SILENT;
 static buzzer_state_t current_state = BUZZER_IDLE;
 static soft_timer_t beep_timer;
 
-// Timing parameters (in milliseconds)
-#define SINGLE_BEEP_DURATION 300      // Single beep duration
-#define REPEAT_BEEP_PERIOD 500        // Period of repeated beeps (on+off)
-#define REPEAT_BEEP_ON_TIME 200       // Beep on duration in repeat mode
+// Timing parameters (in milliseconds) - imported from config.h
+// #define SINGLE_BEEP_DURATION is now BUZZER_SINGLE_BEEP_DURATION
+// #define REPEAT_BEEP_PERIOD is now BUZZER_REPEAT_BEEP_PERIOD
+// #define REPEAT_BEEP_ON_TIME is now BUZZER_REPEAT_BEEP_ON_TIME
 
 // Multi-beep pattern settings (for BUZZER_MODE_BEEP_ONCE)
 static uint8_t beep_count = 1;                 // Number of beeps to play
-static uint16_t beep_duration = SINGLE_BEEP_DURATION;  // Duration of each beep
+static uint16_t beep_duration = BUZZER_SINGLE_BEEP_DURATION;  // Duration of each beep
 static uint16_t beep_period = 200;             // Period (silence) between beeps
 
 // Multi-beep runtime tracking
@@ -53,20 +54,22 @@ void Buzzer_Init(void)
     current_mode = BUZZER_MODE_SILENT;
     beep_counter = 0;
     
-    // Initialize beep pattern with defaults
-    beep_count = 1;
-    beep_duration = SINGLE_BEEP_DURATION;
-    beep_period = 200;
+    // Initialize beep pattern with defaults from config.h
+    beep_count = BUZZER_DEFAULT_BEEP_COUNT;
+    beep_duration = BUZZER_SINGLE_BEEP_DURATION;
+    beep_period = BUZZER_DEFAULT_BEEP_PERIOD;
 }
 
 static void buzzer_on(void)
 {
-    HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, BUZZER_ACTIVE_LEVEL);
 }
 
 static void buzzer_off(void)
 {
-    HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+    // Set to the inverse of active level
+    uint8_t off_level = (BUZZER_ACTIVE_LEVEL == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+    HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, off_level);
 }
 
 static void buzzer_toggle(void)
@@ -114,7 +117,7 @@ void Buzzer_NotifyTimerFinished(void)
         case BUZZER_MODE_BEEP_UNTIL_STOP:
             // Start continuous beeping
             buzzer_on();
-            soft_timer_start(&beep_timer, REPEAT_BEEP_ON_TIME);
+            soft_timer_start(&beep_timer, BUZZER_REPEAT_BEEP_ON_TIME);
             current_state = BUZZER_REPEAT_BEEP;
             break;
     }
@@ -161,11 +164,11 @@ void Buzzer_Process(void)
             // Toggle between on and off
             buzzer_toggle();
             // Restart timer for next toggle
-            // If currently ON, wait REPEAT_BEEP_ON_TIME before turning off
-            // If currently OFF, wait REPEAT_BEEP_PERIOD - REPEAT_BEEP_ON_TIME before turning on
-            uint32_t next_wait = (HAL_GPIO_ReadPin(Buzzer_GPIO_Port, Buzzer_Pin) == GPIO_PIN_SET)
-                                    ? REPEAT_BEEP_ON_TIME
-                                    : (REPEAT_BEEP_PERIOD - REPEAT_BEEP_ON_TIME);
+            // If currently ON, wait BUZZER_REPEAT_BEEP_ON_TIME before turning off
+            // If currently OFF, wait BUZZER_REPEAT_BEEP_PERIOD - BUZZER_REPEAT_BEEP_ON_TIME before turning on
+            uint32_t next_wait = (HAL_GPIO_ReadPin(Buzzer_GPIO_Port, Buzzer_Pin) == BUZZER_ACTIVE_LEVEL)
+                                    ? BUZZER_REPEAT_BEEP_ON_TIME
+                                    : (BUZZER_REPEAT_BEEP_PERIOD - BUZZER_REPEAT_BEEP_ON_TIME);
             soft_timer_start(&beep_timer, next_wait);
             break;
 

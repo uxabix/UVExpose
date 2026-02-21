@@ -48,25 +48,25 @@ SDA        |PB7          |Serial data line
 #include "stm32f1xx_hal.h"
 #include "i2c.h"
 #include "fonts.h"
+#include "config.h"
 
 #include "stdlib.h"
 #include "string.h"
 
 
-/* I2C address */
+/* I2C address - configured in config.h */
 #ifndef SSD1306_I2C_ADDR
-#define SSD1306_I2C_ADDR         0x78
-//#define SSD1306_I2C_ADDR       0x7A
+#define SSD1306_I2C_ADDR         SCREEN_I2C_ADDR
 #endif
 
 /* SSD1306 settings */
-/* SSD1306 width in pixels */
+/* SSD1306 width in pixels - configured in config.h */
 #ifndef SSD1306_WIDTH
-#define SSD1306_WIDTH            128
+#define SSD1306_WIDTH            SCREEN_WIDTH
 #endif
-/* SSD1306 LCD height in pixels */
+/* SSD1306 LCD height in pixels - configured in config.h */
 #ifndef SSD1306_HEIGHT
-#define SSD1306_HEIGHT           64
+#define SSD1306_HEIGHT           SCREEN_HEIGHT
 #endif
 
 /**
