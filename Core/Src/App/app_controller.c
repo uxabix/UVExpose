@@ -1,12 +1,142 @@
 #include "App/app_controller.h"
+#include "App/app_states.h"
+#include "App/exposure_service.h"
 #include "UI/ui_manager.h"
 #include "Drivers/encoder.h"
 #include "Display/display.h"
 #include "Services/soft_timer.h"
 
+// ========== FSM State Machine ==========
+static app_state_t current_state = APP_STATE_INIT;
+static app_event_t pending_event = APP_EVENT_NONE;
+
 // Keep battery update logic
-soft_timer_t battery_update_timer;
-const uint32_t battery_update_period = 15000;  // 15 seconds
+static soft_timer_t battery_update_timer;
+static const uint32_t battery_update_period = 15000;  // 15 seconds
+
+// ========== FSM Public API Implementation ==========
+
+void app_fsm_init(void)
+{
+    current_state = APP_STATE_IDLE;
+    pending_event = APP_EVENT_NONE;
+}
+
+void app_fsm_set_state(app_state_t state)
+{
+    current_state = state;
+}
+
+app_state_t app_fsm_get_state(void)
+{
+    return current_state;
+}
+
+void app_fsm_handle_event(app_event_t event)
+{
+    pending_event = event;
+}
+
+void app_fsm_process(void)
+{
+    if(pending_event == APP_EVENT_NONE)
+        return;
+
+    app_event_t event = pending_event;
+    pending_event = APP_EVENT_NONE;
+
+    switch(current_state)
+    {
+        case APP_STATE_INIT:
+            // Initialization complete, transition to IDLE
+            if(event == APP_EVENT_TICK_1S) {
+                current_state = APP_STATE_IDLE;
+            }
+            break;
+
+        case APP_STATE_IDLE:
+            // In IDLE, waiting for user to navigate menu
+            if(event == APP_EVENT_BTN_START_STOP) {
+                current_state = APP_STATE_ACTIVE_UI;
+            }
+            break;
+
+        case APP_STATE_ACTIVE_UI:
+            // User is interacting with UI
+            if(event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_IDLE;
+            }
+            // Navigation events handled by UI layer
+            break;
+
+        case APP_STATE_READY:
+            // Ready to start exposure
+            if(event == APP_EVENT_BTN_START_STOP) {
+                current_state = APP_STATE_RUNNING;
+            } else if(event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_ACTIVE_UI;
+            }
+            break;
+
+        case APP_STATE_RUNNING:
+            // Exposure in progress
+            if(event == APP_EVENT_BTN_START_STOP) {
+                current_state = APP_STATE_PAUSED;
+            } else if(event == APP_EVENT_LID_OPENED) {
+                current_state = APP_STATE_LID_OPEN;
+            } else if(event == APP_EVENT_TIMER_EXPIRED) {
+                current_state = APP_STATE_DONE;
+            } else if(event == APP_EVENT_ERROR) {
+                current_state = APP_STATE_ERROR;
+            }
+            break;
+
+        case APP_STATE_PAUSED:
+            // User paused exposure
+            if(event == APP_EVENT_BTN_START_STOP) {
+                current_state = APP_STATE_RUNNING;
+            } else if(event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_IDLE;
+            } else if(event == APP_EVENT_LID_OPENED) {
+                current_state = APP_STATE_LID_OPEN;
+            }
+            break;
+
+        case APP_STATE_LID_OPEN:
+            // Lid is open during exposure
+            if(event == APP_EVENT_LID_CLOSED) {
+                current_state = APP_STATE_RUNNING;
+            }
+            break;
+
+        case APP_STATE_DONE:
+            // Exposure finished
+            if(event == APP_EVENT_BTN_START_STOP || event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_IDLE;
+            }
+            break;
+
+        case APP_STATE_ERROR:
+            // Error occurred
+            if(event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_IDLE;
+            }
+            break;
+
+        case APP_STATE_ENCODER_TEST:
+            // Encoder testing mode
+            if(event == APP_EVENT_BTN_BACK) {
+                current_state = APP_STATE_IDLE;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+// ========== Battery Update ==========
+
 
 void update_battery() {
 	if (soft_timer_expired(&battery_update_timer)){
@@ -21,15 +151,21 @@ void App_Init(void)
     display_init();
     Encoder_Init();
     UI_Init();
-    soft_timer_start(&battery_update_timer, battery_update_period);
+    Exposure_Init();  // Initialize exposure service
+    app_fsm_init();
+    update_battery();
 }
 
 void App_Process(void)
 {
     update_battery();
     UI_Render();
+    Exposure_Process();  // Process exposure service
 
-    // Now, check for encoder events and pass them to the UI
+    // Process FSM
+    app_fsm_process();
+
+    // Check for encoder events and pass them to the UI
     App_Controls_Check();
 }
 
@@ -52,20 +188,26 @@ void App_Controls_Check(void) {
 void App_Encoder_CW(void)
 {
     UI_HandleEvent(UI_EVENT_ROTATE_CW);
+    // Encoder rotation in IDLE state - no FSM event needed
 }
 
 void App_Encoder_CCW(void)
 {
     UI_HandleEvent(UI_EVENT_ROTATE_CCW);
+    // Encoder rotation in IDLE state - no FSM event needed
 }
 
 void App_Encoder_Click(void)
 {
     UI_HandleEvent(UI_EVENT_CLICK);
+    // Normal click maps to BTN_START_STOP event
+    app_fsm_handle_event(APP_EVENT_BTN_START_STOP);
 }
 
 void App_Encoder_Long_Click(void)
 {
     UI_HandleEvent(UI_EVENT_LONG_CLICK);
+    // Long click maps to BTN_BACK event
+    app_fsm_handle_event(APP_EVENT_BTN_BACK);
 }
 

@@ -11,6 +11,7 @@
 #include "UI/menus/menu_main.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 static uint8_t selected_row_index = 0;
 #define ITEM_COUNT 3
@@ -18,9 +19,21 @@ static uint8_t selected_row_index = 0;
 static bool burn_in_protection = true;
 static bool open_lid_protection = true;
 
+#define SLEEP_OPTION_COUNT 6
+static uint8_t sleep_mode = 0;
+static const char* sleep_options[] = {
+    "Off",
+    "2m",
+    "5m",
+    "10m",
+    "15m",
+    "30m",
+};
+
+
 static char items[ITEM_COUNT][16] = {
     "+Burn-in prot.",
-    "Sleep when idle",
+    "Sleep after 2m",
     "+Open lid prot."
 };
 
@@ -28,6 +41,14 @@ static void update_display_text()
 {
     items[0][0] = burn_in_protection ? '+' : '-';
     items[2][0] = open_lid_protection ? '+' : '-';
+
+    // Update sleep mode text
+    if (sleep_mode > 0 && sleep_mode < SLEEP_OPTION_COUNT) {
+        strcpy(items[1], "Sleep after ");
+        strcat(items[1], sleep_options[sleep_mode]);
+    } else {
+        strcpy(items[1], "Sleep Off");
+    }
 }
 
 static void on_enter(void)
@@ -53,7 +74,8 @@ static void on_event(ui_event_t event)
                 burn_in_protection = !burn_in_protection;
                 update_display_text();
             } else if (selected_row_index == 1) {
-
+                sleep_mode = (sleep_mode + 1) % SLEEP_OPTION_COUNT;
+                update_display_text();
             } else if (selected_row_index == 2) {
                 open_lid_protection = !open_lid_protection;
                 update_display_text();

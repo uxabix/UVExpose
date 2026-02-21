@@ -43,13 +43,19 @@ static void on_event(ui_event_t event)
 
         case UI_EVENT_CLICK:
             if(selected_row_index == 0) {
-                // TODO: Set mode to "active until off"
+                // Presets - go to presets menu
+                menu_running_set_infinite_mode(0);  // Normal mode
                 UI_SetMenu(&menu_presets);
             }
-            if(selected_row_index == 1) {
+            else if(selected_row_index == 1) {
+                // Custom - set infinite mode off and go to expose_options
+                menu_running_set_infinite_mode(0);  // Normal mode
+                menu_expose_options_set_until_off(0);
                 UI_SetMenu(&menu_expose_options);
             }
-            if (selected_row_index == 2) {
+            else if(selected_row_index == 2) {
+                // Active until off - enable infinite mode and start exposure
+                menu_running_set_infinite_mode(1);  // Infinite mode - no timer
                 UI_SetMenu(&menu_running);
             }
             break;

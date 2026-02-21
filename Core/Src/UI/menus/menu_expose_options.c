@@ -83,6 +83,59 @@ static void change_time(int8_t delta)
     format_time();
 }
 
+// ========== Getters for exposure settings ==========
+uint32_t menu_expose_options_get_time_ms(void)
+{
+    return (uint32_t)(time_minutes * 60 + time_seconds) * 1000;
+}
+
+uint8_t menu_expose_options_get_beep_mode(void)
+{
+    return beep_mode;
+}
+
+uint8_t menu_expose_options_get_until_off(void)
+{
+    return until_off_mode;
+}
+
+// ========== Setter for until_off mode ==========
+void menu_expose_options_set_until_off(uint8_t enabled)
+{
+    until_off_mode = enabled;
+    update_until_off_item();
+}
+
+// ========== Setter for beep mode ==========
+void menu_expose_options_set_beep_mode(uint8_t mode)
+{
+    beep_mode = (mode > 2) ? 0 : mode;
+    update_beep_items();
+}
+
+// ========== Setter for time ==========
+void menu_expose_options_set_time_ms(uint16_t time_ms)
+{
+    uint16_t total_seconds = time_ms / 1000;
+    time_minutes = total_seconds / 60;
+    time_seconds = total_seconds % 60;
+    
+    // Clamp to max value (99:59)
+    if (time_minutes > 99) time_minutes = 99;
+    
+    format_time();
+}
+
+// ========== Debug: Reset to defaults ==========
+void menu_expose_options_reset_to_defaults(void)
+{
+    time_minutes = 15;
+    time_seconds = 0;
+    beep_mode = 0;
+    until_off_mode = 0;
+    update_all_items();
+}
+
 
 // ---------- menu ----------
 
@@ -90,7 +143,9 @@ static void on_enter(void)
 {
     selected_row_index = 0;
     edit_time_mode = 0;
+    time_digit_index = 0;  // Reset digit selection for time edit
     scroll_offset = 0;
+    // Don't reset time/beep/until_off - they should persist across visits
     update_all_items();
 }
 

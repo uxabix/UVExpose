@@ -72,11 +72,22 @@ typedef struct {
 #define TIMER_FLOAT_STEP_Y 1 // Pixels to move per update
 #define TIMER_FLOAT_MARGIN 5 // Margin from display area edges
 
-// Static variables for floating text position
-static int16_t timer_current_x = -1; // -1 indicates uninitialized
-static int16_t timer_current_y = -1;
-static int8_t timer_dx = TIMER_FLOAT_STEP_X;
-static int8_t timer_dy = TIMER_FLOAT_STEP_Y;
+typedef enum {
+    DISPLAY_TEXT_FLOATING,        // Floating within defined area, bouncing off edges
+    DISPLAY_TEXT_CENTERED,        // Centered
+    DISPLAY_TEXT_FIXED,           // Fixed position
+    DISPLAY_TEXT_MARQUEE          // Running text
+} DisplayTextMode_t;
+
+typedef struct {
+    int16_t x;
+    int16_t y;
+    int16_t dx;
+    int16_t dy;
+    uint8_t initialized;
+} DisplayTextState_t;
+
+static DisplayTextState_t timer_state = {0};
 
 void display_init() {
 	SSD1306_Init();
@@ -94,61 +105,183 @@ void display_clear_top_bar() {
 }
 
 void display_clear_main_frame() {
-	SSD1306_DrawFilledRectangle(0, top_bar_height - 1, screen_width, screen_height - top_bar_height, SSD1306_COLOR_BLACK);
+	SSD1306_DrawFilledRectangle(0, top_bar_height - 1, screen_width + 1, screen_height - top_bar_height, SSD1306_COLOR_BLACK);
 }
 
-void display_timer_remaining(uint32_t remaining_ms) {
-    char time_str[6]; // MM:SS\0 (e.g., "00:00")
-    uint32_t total_seconds = remaining_ms / 1000;
-    uint8_t minutes = total_seconds / 60;
-    uint8_t seconds = total_seconds % 60;
+void display_draw_text_advanced(
+    const char* text,
+    const FontDef_t* font,
+    uint8_t char_width,
+    uint8_t char_height,
+    uint8_t area_min_x,
+    uint8_t area_max_x,
+    uint8_t area_min_y,
+    uint8_t area_max_y,
+    DisplayTextMode_t mode,
+    DisplayTextState_t* state,
+    int16_t fixed_x,
+    int16_t fixed_y,
+    uint8_t step_x,
+    uint8_t step_y
+) {
+    uint16_t text_width = strlen(text) * char_width;
+    uint16_t text_height = char_height;
 
-    sprintf(time_str, "%02d:%02d", minutes, seconds);
+    switch (mode) {
 
-    uint16_t text_width = strlen(time_str) * TIMER_TEXT_WIDTH;
-    uint8_t text_height = TIMER_TEXT_HEIGHT;
+    case DISPLAY_TEXT_CENTERED:
+        state->x = area_min_x + (area_max_x - area_min_x - text_width) / 2;
+        state->y = area_min_y + (area_max_y - area_min_y - text_height) / 2;
+        break;
 
-    // Define the floating area boundaries
-    uint8_t float_area_min_x = TIMER_FLOAT_MARGIN;
-    uint8_t float_area_max_x = screen_width - TIMER_FLOAT_MARGIN - text_width;
-    uint8_t float_area_min_y = top_bar_height + TIMER_FLOAT_MARGIN;
-    uint8_t float_area_max_y = screen_height - TIMER_FLOAT_MARGIN - text_height;
+    case DISPLAY_TEXT_FIXED:
+        state->x = fixed_x;
+        state->y = fixed_y;
+        break;
 
-    // Initialize position if not already set
-    if (timer_current_x == -1 || timer_current_y == -1) {
-        timer_current_x = (float_area_min_x + float_area_max_x) / 2;
-        timer_current_y = (float_area_min_y + float_area_max_y) / 2;
+    case DISPLAY_TEXT_FLOATING:
+        if (!state->initialized) {
+            state->x = area_min_x + (area_max_x - area_min_x - text_width) / 2;
+            state->y = area_min_y + (area_max_y - area_min_y - text_height) / 2;
+            state->dx = step_x;
+            state->dy = step_y;
+            state->initialized = 1;
+        }
+
+        state->x += state->dx;
+        state->y += state->dy;
+
+        if (state->x < area_min_x) {
+            state->x = area_min_x;
+            state->dx = step_x;
+        } else if (state->x > area_max_x - text_width) {
+            state->x = area_max_x - text_width;
+            state->dx = -step_x;
+        }
+
+        if (state->y < area_min_y) {
+            state->y = area_min_y;
+            state->dy = step_y;
+        } else if (state->y > area_max_y - text_height) {
+            state->y = area_max_y - text_height;
+            state->dy = -step_y;
+        }
+        break;
+
+    case DISPLAY_TEXT_MARQUEE:
+        if (!state->initialized) {
+            state->x = area_max_x;
+            state->y = area_min_y + (area_max_y - area_min_y - text_height) / 2;
+            state->dx = -step_x;
+            state->initialized = 1;
+        }
+
+        state->x += state->dx;
+
+        if (state->x < area_min_x - text_width) {
+            state->x = area_max_x;
+        }
+        break;
     }
 
-    // Update position
-    timer_current_x += timer_dx;
-    timer_current_y += timer_dy;
+    SSD1306_GotoXY(state->x, state->y);
+    SSD1306_Puts(text, font, SSD1306_COLOR_WHITE);
+}
 
-    // Check boundaries and reverse direction
-    if (timer_current_x < float_area_min_x) {
-        timer_current_x = float_area_min_x;
-        timer_dx = TIMER_FLOAT_STEP_X;
-    } else if (timer_current_x > float_area_max_x) {
-        timer_current_x = float_area_max_x;
-        timer_dx = -TIMER_FLOAT_STEP_X;
+void display_text_simple(const char* text)
+{
+    uint8_t text_len = strlen(text);
+    
+    // Available display area (accounting for margins)
+    uint16_t available_width = screen_width - (2 * TIMER_FLOAT_MARGIN);
+    uint16_t available_height = screen_height - top_bar_height - (2 * TIMER_FLOAT_MARGIN);
+    
+    // Font parameters: {char_width, char_height}
+    FontSize_t selected_size = FONT_SIZE_SMALL; // Default fallback
+    
+    // Try largest font first (16x26)
+    if (text_len * 16 <= available_width && 26 <= available_height) {
+        selected_size = FONT_SIZE_LARGE;
+    }
+    // Try medium font (11x18)
+    else if (text_len * 11 <= available_width && 18 <= available_height) {
+        selected_size = FONT_SIZE_MEDIUM;
+    }
+    // Use small font (7x10) as fallback
+    else {
+        selected_size = FONT_SIZE_SMALL;
+    }
+    
+    display_text_simple_sized(text, selected_size);
+}
+
+void display_text_simple_sized(const char* text, FontSize_t font_size)
+{
+    static DisplayTextState_t text_state = {0};
+    
+    DisplayTextMode_t mode =
+        burnout_protection ? DISPLAY_TEXT_FLOATING
+                           : DISPLAY_TEXT_CENTERED;
+
+    // Select font parameters based on size
+    const FontDef_t* font;
+    uint8_t char_width;
+    uint8_t char_height;
+    
+    switch (font_size) {
+        case FONT_SIZE_SMALL:
+            font = &Font_7x10;
+            char_width = 7;
+            char_height = 10;
+            break;
+        case FONT_SIZE_MEDIUM:
+            font = &Font_11x18;
+            char_width = 11;
+            char_height = 18;
+            break;
+        case FONT_SIZE_LARGE:
+        default:
+            font = &Font_16x26;
+            char_width = 16;
+            char_height = 26;
+            break;
     }
 
-    if (timer_current_y < float_area_min_y) {
-        timer_current_y = float_area_min_y;
-        timer_dy = TIMER_FLOAT_STEP_Y;
-    } else if (timer_current_y > float_area_max_y) {
-        timer_current_y = float_area_max_y;
-        timer_dy = -TIMER_FLOAT_STEP_Y;
-    }
-
-    // Clear the main frame before drawing to avoid trails
     display_clear_main_frame();
 
-    // Draw the time string
-    SSD1306_GotoXY(timer_current_x, timer_current_y);
-    SSD1306_Puts(time_str, TIMER_FONT, SSD1306_COLOR_WHITE);
+    display_draw_text_advanced(
+        text,
+        font,
+        char_width,
+        char_height,
+        TIMER_FLOAT_MARGIN,
+        screen_width - TIMER_FLOAT_MARGIN,
+        top_bar_height + TIMER_FLOAT_MARGIN,
+        screen_height - TIMER_FLOAT_MARGIN,
+        mode,
+        &text_state,
+        0, 0,
+        TIMER_FLOAT_STEP_X,
+        TIMER_FLOAT_STEP_Y
+    );
 
     SSD1306_UpdateScreen();
+}
+
+void display_timer_remaining(uint32_t remaining_ms)
+{
+    char text[16];
+
+    if (remaining_ms >= 0xFFFFF000) {
+        strcpy(text, "Active");
+    } else {
+        uint32_t total_seconds = remaining_ms / 1000;
+        uint8_t minutes = total_seconds / 60;
+        uint8_t seconds = total_seconds % 60;
+        sprintf(text, "%02d:%02d", minutes, seconds);
+    }
+
+    display_text_simple(text);
 }
 
 // Helper function to calculate menu layout parameters
