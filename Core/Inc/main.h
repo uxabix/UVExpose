@@ -65,6 +65,8 @@ void Error_Handler(void);
 #define EncoderB_GPIO_Port GPIOA
 #define LED_Output_Pin GPIO_PIN_10
 #define LED_Output_GPIO_Port GPIOB
+#define Buzzer_Pin GPIO_PIN_11
+#define Buzzer_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

@@ -1,10 +1,11 @@
 #include "App/app_controller.h"
 #include "App/app_states.h"
-#include "App/exposure_service.h"
+#include "Services/exposure_service.h"
 #include "UI/ui_manager.h"
 #include "Drivers/encoder.h"
 #include "Display/display.h"
 #include "Services/soft_timer.h"
+#include "Services/buzzer.h"
 
 // ========== FSM State Machine ==========
 static app_state_t current_state = APP_STATE_INIT;
@@ -152,6 +153,7 @@ void App_Init(void)
     Encoder_Init();
     UI_Init();
     Exposure_Init();  // Initialize exposure service
+    Buzzer_Init();    // Initialize buzzer service
     app_fsm_init();
     update_battery();
 }
@@ -161,6 +163,7 @@ void App_Process(void)
     update_battery();
     UI_Render();
     Exposure_Process();  // Process exposure service
+    Buzzer_Process();    // Process buzzer service
 
     // Process FSM
     app_fsm_process();

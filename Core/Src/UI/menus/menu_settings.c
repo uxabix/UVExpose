@@ -14,10 +14,15 @@
 #include <string.h>
 
 static uint8_t selected_row_index = 0;
-#define ITEM_COUNT 3
+#define ITEM_COUNT 6
 
 static bool burn_in_protection = true;
 static bool open_lid_protection = true;
+
+// Buzzer settings
+static uint8_t beep_count = 1;           // Number of beeps (1-10)
+static uint16_t beep_duration = 300;     // Duration of each beep (50-1000ms)
+static uint16_t beep_period = 200;       // Pause between beeps (50-2000ms)
 
 #define SLEEP_OPTION_COUNT 6
 static uint8_t sleep_mode = 0;
@@ -34,7 +39,10 @@ static const char* sleep_options[] = {
 static char items[ITEM_COUNT][16] = {
     "+Burn-in prot.",
     "Sleep after 2m",
-    "+Open lid prot."
+    "+Open lid prot.",
+    "Beep count:1",
+    "Beep dur:300ms",
+    "Beep pause:200m"
 };
 
 static void update_display_text()
@@ -49,6 +57,11 @@ static void update_display_text()
     } else {
         strcpy(items[1], "Sleep Off");
     }
+    
+    // Update buzzer settings
+    snprintf(items[3], sizeof(items[3]), "Beep count:%u", beep_count);
+    snprintf(items[4], sizeof(items[4]), "Beep dur:%u", beep_duration);
+    snprintf(items[5], sizeof(items[5]), "Beep pause:%u", beep_period);
 }
 
 static void on_enter(void)
@@ -79,6 +92,20 @@ static void on_event(ui_event_t event)
             } else if (selected_row_index == 2) {
                 open_lid_protection = !open_lid_protection;
                 update_display_text();
+            } else if (selected_row_index == 3) {
+                // Beep count: cycle through 1-10
+                beep_count = (beep_count % 10) + 1;
+                update_display_text();
+            } else if (selected_row_index == 4) {
+                // Beep duration: cycle through 50, 100, 150...1000
+                beep_duration += 50;
+                if (beep_duration > 1000) beep_duration = 50;
+                update_display_text();
+            } else if (selected_row_index == 5) {
+                // Beep period: cycle through 50, 100, 150...2000
+                beep_period += 50;
+                if (beep_period > 2000) beep_period = 50;
+                update_display_text();
             }
             break;
         
@@ -94,6 +121,22 @@ static void on_event(ui_event_t event)
 static void on_render(void)
 {
     display_menu(items, ITEM_COUNT, selected_row_index, selected_row_index);
+}
+
+// ========== Getters for buzzer settings ==========
+uint8_t menu_settings_get_beep_count(void)
+{
+    return beep_count;
+}
+
+uint16_t menu_settings_get_beep_duration(void)
+{
+    return beep_duration;
+}
+
+uint16_t menu_settings_get_beep_period(void)
+{
+    return beep_period;
 }
 
 const menu_t menu_settings = {

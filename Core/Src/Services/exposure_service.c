@@ -6,7 +6,7 @@
  *      Author: kiril
  */
 
-#include "App/exposure_service.h"
+#include "Services/exposure_service.h"
 #include "App/power_channel.h"
 #include "Services/soft_timer.h"
 
@@ -142,4 +142,9 @@ uint8_t Exposure_IsFinished(void)
 uint8_t Exposure_IsFinishedUntilOff(void)
 {
     return (state == EXPOSURE_STATE_FINISHED_UNTIL_OFF);
+}
+
+uint8_t Exposure_GetBeepMode(void)
+{
+    return beep_mode;
 }

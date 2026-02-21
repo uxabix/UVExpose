@@ -93,4 +93,10 @@ uint8_t Exposure_IsFinished(void);
  */
 uint8_t Exposure_IsFinishedUntilOff(void);
 
+/**
+ * Get the beep mode for current exposure
+ * @return Beep mode (0=silent, 1=single, 2=multiple)
+ */
+uint8_t Exposure_GetBeepMode(void);
+
 #endif /* INC_APP_EXPOSURE_SERVICE_H_ */
