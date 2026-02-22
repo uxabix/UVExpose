@@ -167,9 +167,9 @@ extern "C" {
  * Voltage divider present on sensor output (0 = no divider, 1 = divider present)
  * If present, configure `DIVIDER_R_TOP` and `DIVIDER_R_BOTTOM` in ohms.
  */
-#define LID_HALL_VOLTAGE_DIVIDER_PRESENT  0
-#define DIVIDER_R_TOP                  10000u /* Rtop in ohms */
-#define DIVIDER_R_BOTTOM               10000u /* Rbottom in ohms */
+#define LID_HALL_VOLTAGE_DIVIDER_PRESENT  1
+#define DIVIDER_R_TOP                  68000u /* Rtop in ohms */
+#define DIVIDER_R_BOTTOM               68000u /* Rbottom in ohms */
 
 /**
  * Default thresholds for linear Hall sensor in millivolts.
@@ -193,6 +193,21 @@ extern "C" {
  * when idle
  */
 #define IDLE_BRIGHTNESS_LEVEL          50
+
+/* ============================================================================
+ * SETTINGS STORAGE CONFIGURATION
+ * ============================================================================ */
+/**
+ * Flash address for settings storage (last page)
+ * Adjust for your STM32 model
+ */
+#define SETTINGS_FLASH_ADDR 0x08007C00 // Last 1KB page for STM32F103C6 (32KB flash)
+#define SETTINGS_FLASH_PAGE_SIZE 1024
+
+/**
+ * Maximum number of presets
+ */
+#define SETTINGS_MAX_PRESETS 5
 
 #ifdef __cplusplus
 }

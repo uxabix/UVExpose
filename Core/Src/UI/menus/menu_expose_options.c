@@ -11,6 +11,7 @@
 #include "UI/menus/menu_running.h"
 #include "UI/menus/menu_expose_mode.h"
 #include "Display/display.h"
+#include "Helpers/simple_formatters.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -47,7 +48,10 @@ static uint8_t scroll_offset = 0; // first visible menu row
 
 static void format_time(void)
 {
-    snprintf(items[0], sizeof(items[0]), "Time: %02u:%02u", time_minutes, time_seconds);
+    // Always prefix with 'Time: '
+    char time_buf[8];
+    simple_time_format(time_buf, sizeof(time_buf), time_minutes, time_seconds);
+    snprintf(items[0], sizeof(items[0]), "Time: %s", time_buf);
 }
 
 static void update_beep_items(void)
@@ -279,7 +283,8 @@ static void on_render(void)
 {
     if(edit_time_mode && selected_row_index == 0)
     {
-        uint8_t highlight_pos = time_digit_pos[time_digit_index]; // get correct char index
+        // Highlight correct digit in 'Time: MM:SS'
+        uint8_t highlight_pos = time_digit_pos[time_digit_index];
         display_menu_column(items, ITEM_COUNT, selected_row_index, scroll_offset, highlight_pos);
     }
     else

@@ -12,6 +12,7 @@
 #include "Display/ssd1306.h"
 #include "Display/fonts.h"
 #include "config.h"
+#include "Helpers/simple_formatters.h"
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -204,10 +205,6 @@ void display_text_simple(const char* text)
     if (text_len * 16 <= available_width && 26 <= available_height) {
         selected_size = FONT_SIZE_LARGE;
     }
-    // Try medium font (11x18)
-    else if (text_len * 11 <= available_width && 18 <= available_height) {
-        selected_size = FONT_SIZE_MEDIUM;
-    }
     // Use small font (7x10) as fallback
     else {
         selected_size = FONT_SIZE_SMALL;
@@ -230,22 +227,17 @@ void display_text_simple_sized(const char* text, FontSize_t font_size)
     uint8_t char_height;
     
     switch (font_size) {
+        case FONT_SIZE_LARGE:
+            font = &Font_16x26;
+            char_width = 16;
+            char_height = 26;
         case FONT_SIZE_SMALL:
+        default:
             font = &Font_7x10;
             char_width = 7;
             char_height = 10;
             break;
-        case FONT_SIZE_MEDIUM:
-            font = &Font_11x18;
-            char_width = 11;
-            char_height = 18;
-            break;
-        case FONT_SIZE_LARGE:
-        default:
-            font = &Font_16x26;
-            char_width = 16;
-            char_height = 26;
-            break;
+
     }
 
     display_clear_main_frame();
@@ -279,7 +271,7 @@ void display_timer_remaining(uint32_t remaining_ms)
         uint32_t total_seconds = remaining_ms / 1000;
         uint8_t minutes = total_seconds / 60;
         uint8_t seconds = total_seconds % 60;
-        sprintf(text, "%02d:%02d", minutes, seconds);
+        simple_time_format(text, sizeof(text), minutes, seconds);
     }
 
     display_text_simple(text);

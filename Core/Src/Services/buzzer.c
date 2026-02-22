@@ -27,7 +27,7 @@ static buzzer_mode_t current_mode = BUZZER_MODE_SILENT;
 static buzzer_state_t current_state = BUZZER_IDLE;
 static soft_timer_t beep_timer;
 
-// Timing parameters (in milliseconds) - imported from config.h
+// Timing parameters (in milliseconds) - imported from config.h78нрот
 // #define SINGLE_BEEP_DURATION is now BUZZER_SINGLE_BEEP_DURATION
 // #define REPEAT_BEEP_PERIOD is now BUZZER_REPEAT_BEEP_PERIOD
 // #define REPEAT_BEEP_ON_TIME is now BUZZER_REPEAT_BEEP_ON_TIME
