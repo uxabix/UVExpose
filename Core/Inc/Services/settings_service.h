@@ -20,5 +20,6 @@ extern settings_t g_settings;
 uint32_t Settings_CalcCRC(const settings_t *cfg);
 void Settings_Save(const settings_t *cfg);
 int Settings_Load(settings_t *cfg);
+void Settings_Init(void);
 
 #endif // SETTINGS_SERVICE_H

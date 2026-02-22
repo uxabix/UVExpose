@@ -25,16 +25,7 @@ static uint8_t scroll_offset = 0;
 #define VISIBLE_ROWS 4
 #define ITEM_COUNT 9
 
-static bool burn_in_protection = true;
-static bool open_lid_protection = true;
-
-// Buzzer settings
-static uint8_t beep_count = 1;           // Number of beeps (1-10)
-static uint16_t beep_duration = 300;     // Duration of each beep (50-1000ms)
-static uint16_t beep_period = 200;       // Pause between beeps (50-2000ms)
-
 #define SLEEP_OPTION_COUNT 6
-static uint8_t sleep_mode = 0;
 static const char* sleep_options[] = {
     "Off",
     "2m",
@@ -72,59 +63,34 @@ static void update_display_text()
     strcpy(items[8], "Save settings");
 
     // Update toggles
-    strcpy(items[0], burn_in_protection ? "+Burn-in prot." : "-Burn-in prot.");
-    if (sleep_mode > 0 && sleep_mode < SLEEP_OPTION_COUNT) {
+    strcpy(items[0], g_settings.burn_in_protection ? "+Burn-in prot." : "-Burn-in prot.");
+    if (g_settings.sleep_mode > 0 && g_settings.sleep_mode < SLEEP_OPTION_COUNT) {
         strcpy(items[1], "Sleep after ");
-        strcat(items[1], sleep_options[sleep_mode]);
+        strcat(items[1], sleep_options[g_settings.sleep_mode]);
     } else {
         strcpy(items[1], "Sleep Off");
     }
-    strcpy(items[2], open_lid_protection ? "+Open lid prot." : "-Open lid prot.");
+    strcpy(items[2], g_settings.open_lid_protection ? "+Open lid prot." : "-Open lid prot.");
 
     // Update buzzer settings with units (ms)
-    simple_utoa(items[3], sizeof(items[3]), beep_count, "Beep count:");
+    simple_utoa(items[3], sizeof(items[3]), g_settings.beep_count, "Beep count:");
     strcat(items[3], "");
-    simple_utoa(items[4], sizeof(items[4]), beep_duration, "BeepDur:");
+    simple_utoa(items[4], sizeof(items[4]), g_settings.beep_duration, "BeepDur:");
     strcat(items[4], "ms");
-    simple_utoa(items[5], sizeof(items[5]), beep_period, "  Pause:");
+    simple_utoa(items[5], sizeof(items[5]), g_settings.beep_period, "  Pause:");
     strcat(items[5], "ms");
 
     // Update lid thresholds display with units (mV)
-    simple_utoa(items[6], sizeof(items[6]), lid_open_threshold_mv, "LidOpen:");
+    simple_utoa(items[6], sizeof(items[6]), g_settings.lid_open_threshold_mv, "LidOpen:");
     strcat(items[6], "mV");
-    simple_utoa(items[7], sizeof(items[7]), lid_close_threshold_mv, "  Close:");
+    simple_utoa(items[7], sizeof(items[7]), g_settings.lid_close_threshold_mv, "  Close:");
     strcat(items[7], "mV");
-}
-
-static void load_settings_to_menu(void)
-{
-    settings_t cfg;
-    if (Settings_Load(&cfg)) {
-        burn_in_protection = cfg.burn_in_protection;
-        open_lid_protection = cfg.open_lid_protection;
-        beep_count = cfg.beep_count;
-        beep_duration = cfg.beep_duration;
-        beep_period = cfg.beep_period;
-        sleep_mode = cfg.sleep_mode;
-        lid_open_threshold_mv = cfg.lid_open_threshold_mv;
-        lid_close_threshold_mv = cfg.lid_close_threshold_mv;
-    } else {
-        burn_in_protection = true;
-        open_lid_protection = true;
-        beep_count = 1;
-        beep_duration = 300;
-        beep_period = 200;
-        sleep_mode = 0;
-        lid_open_threshold_mv = LID_HALL_OPEN_THRESHOLD_MV;
-        lid_close_threshold_mv = LID_HALL_CLOSE_THRESHOLD_MV;
-    }
 }
 
 static void on_enter(void)
 {
     selected_row_index = 0;
     scroll_offset = 0;
-    load_settings_to_menu();
     update_display_text();
 }
 
@@ -152,50 +118,41 @@ static void on_event(ui_event_t event)
 
         case UI_EVENT_CLICK:
             if(selected_row_index == 0) {
-                burn_in_protection = !burn_in_protection;
+                g_settings.burn_in_protection = !g_settings.burn_in_protection;
                 update_display_text();
             } else if (selected_row_index == 1) {
-                sleep_mode = (sleep_mode + 1) % SLEEP_OPTION_COUNT;
+                g_settings.sleep_mode = (g_settings.sleep_mode + 1) % SLEEP_OPTION_COUNT;
                 update_display_text();
             } else if (selected_row_index == 2) {
-                open_lid_protection = !open_lid_protection;
+                g_settings.open_lid_protection = !g_settings.open_lid_protection;
                 update_display_text();
             } else if (selected_row_index == 3) {
                 // Beep count: cycle through 1-10
-                beep_count = (beep_count % 10) + 1;
+                g_settings.beep_count = (g_settings.beep_count % 10) + 1;
                 update_display_text();
             } else if (selected_row_index == 4) {
                 // Beep duration: cycle through 100, 200, 300...3000
-                beep_duration += 100;
-                if (beep_duration > 3000) beep_duration = 100;
+                g_settings.beep_duration += 100;
+                if (g_settings.beep_duration > 3000) g_settings.beep_duration = 100;
                 update_display_text();
             } else if (selected_row_index == 5) {
                 // Beep period: cycle through 50, 100, 150...5000
-                beep_period += 100;
-                if (beep_period > 5000) beep_period = 100;
+                g_settings.beep_period += 100;
+                if (g_settings.beep_period > 5000) g_settings.beep_period = 100;
                 update_display_text();
             } else if (selected_row_index == 6) {
                 // Lid open threshold: increase by 50mV, wrap at ADC_VREF_MV
-                lid_open_threshold_mv += 50;
-                if (lid_open_threshold_mv > ADC_VREF_MV) lid_open_threshold_mv = 0;
+                g_settings.lid_open_threshold_mv += 50;
+                if (g_settings.lid_open_threshold_mv > ADC_VREF_MV) g_settings.lid_open_threshold_mv = 0;
                 update_display_text();
             } else if (selected_row_index == 7) {
                 // Lid close threshold: increase by 50mV, wrap at ADC_VREF_MV
-                lid_close_threshold_mv += 50;
-                if (lid_close_threshold_mv > ADC_VREF_MV) lid_close_threshold_mv = 0;
+                g_settings.lid_close_threshold_mv += 50;
+                if (g_settings.lid_close_threshold_mv > ADC_VREF_MV) g_settings.lid_close_threshold_mv = 0;
                 update_display_text();
             } else if (selected_row_index == 8) {
                 // Save settings
-                settings_t cfg;
-                cfg.burn_in_protection = burn_in_protection;
-                cfg.open_lid_protection = open_lid_protection;
-                cfg.beep_count = beep_count;
-                cfg.beep_duration = beep_duration;
-                cfg.beep_period = beep_period;
-                cfg.sleep_mode = sleep_mode;
-                cfg.lid_open_threshold_mv = lid_open_threshold_mv;
-                cfg.lid_close_threshold_mv = lid_close_threshold_mv;
-                Settings_Save(&cfg);
+                Settings_Save(&g_settings);
                 UI_SetMenu(&menu_main);
             }
             break;
@@ -217,43 +174,43 @@ static void on_render(void)
 // ========== Getters for buzzer settings ==========
 uint8_t menu_settings_get_beep_count(void)
 {
-    return beep_count;
+    return g_settings.beep_count;
 }
 
 uint16_t menu_settings_get_beep_duration(void)
 {
-    return beep_duration;
+    return g_settings.beep_duration;
 }
 
 uint16_t menu_settings_get_beep_period(void)
 {
-    return beep_period;
+    return g_settings.beep_period;
 }
 
 uint8_t menu_settings_get_open_lid_protection(void)
 {
-    return open_lid_protection ? 1 : 0;
+    return g_settings.open_lid_protection ? 1 : 0;
 }
 
 uint16_t menu_settings_get_lid_open_threshold_mv(void)
 {
-    return lid_open_threshold_mv;
+    return g_settings.lid_open_threshold_mv;
 }
 
 uint16_t menu_settings_get_lid_close_threshold_mv(void)
 {
-    return lid_close_threshold_mv;
+    return g_settings.lid_close_threshold_mv;
 }
 
 void menu_settings_set_lid_open_threshold_mv(uint16_t mv)
 {
-    lid_open_threshold_mv = mv;
+    g_settings.lid_open_threshold_mv = mv;
     update_display_text();
 }
 
 void menu_settings_set_lid_close_threshold_mv(uint16_t mv)
 {
-    lid_close_threshold_mv = mv;
+    g_settings.lid_close_threshold_mv = mv;
     update_display_text();
 }
 

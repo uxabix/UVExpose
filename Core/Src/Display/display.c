@@ -12,6 +12,7 @@
 #include "Display/ssd1306.h"
 #include "Display/fonts.h"
 #include "config.h"
+#include "Services/settings_service.h"
 #include "Helpers/simple_formatters.h"
 
 #ifndef MAX
@@ -27,8 +28,6 @@
 #define MENU_TEXT_HEIGHT SCREEN_MENU_TEXT_HEIGHT
 #define MENU_TEXT_WIDTH SCREEN_MENU_TEXT_WIDTH
 #define MENU_PADDING SCREEN_MENU_PADDING
-
-bool burnout_protection = ENABLE_BURNOUT_PROTECTION;
 
 uint8_t screen_width = SCREEN_WIDTH;
 uint8_t screen_height = SCREEN_HEIGHT;
@@ -218,7 +217,7 @@ void display_text_simple_sized(const char* text, FontSize_t font_size)
     static DisplayTextState_t text_state = {0};
     
     DisplayTextMode_t mode =
-        burnout_protection ? DISPLAY_TEXT_FLOATING
+        g_settings.burn_in_protection ? DISPLAY_TEXT_FLOATING
                            : DISPLAY_TEXT_CENTERED;
 
     // Select font parameters based on size
@@ -509,7 +508,7 @@ void display_battery(uint8_t percent) { // Percent - number from 0 to 100
 		SSD1306_DrawRectangle(current_x, small_segment_y, small_segment_width, small_segment_height, SSD1306_COLOR_WHITE);
 	}
 
-	if (burnout_protection) {
+	if (g_settings.burn_in_protection) {
 		battery_pos_x += battery_protection_step_x;
 		if (battery_pos_x > screen_width - 4.75 * battery_segment_width - top_bar_padding) {
 			battery_pos_x = top_bar_padding;
@@ -525,4 +524,12 @@ void display_top_bar (uint8_t battery_percent) {
 	display_clear_top_bar();
 	display_battery(battery_percent);
 	SSD1306_UpdateScreen();
+}
+
+void display_on(void) {
+	SSD1306_ON();
+}
+
+void display_off(void) {
+	SSD1306_OFF();
 }

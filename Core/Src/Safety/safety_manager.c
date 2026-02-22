@@ -119,3 +119,17 @@ uint8_t Safety_IsLidOpen(void)
 {
     return lid_open;
 }
+
+uint8_t Safety_CanSleep(void)
+{
+    // STOP mode allowed only if:
+    // - exposure is not running
+    // - lid is closed
+    // - no error
+    // - timer not running
+    if (Exposure_IsRunning()) return 0;
+    if (Safety_IsLidOpen()) return 0;
+    if (Exposure_HasError()) return 0;
+    if (Exposure_TimerActive()) return 0;
+    return 1;
+}

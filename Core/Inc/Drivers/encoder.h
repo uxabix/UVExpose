@@ -20,8 +20,10 @@ typedef enum
 void Encoder_Init(void);
 encoder_direction_t Encoder_GetDirection(void);
 
-void Encoder_ButtonTask(void);     // Call from 1ms timer
+void Encoder_ButtonIRQHandler(void); // Call from EXTI interrupt
 uint8_t Encoder_ButtonPressed(void);
 uint8_t Encoder_ButtonLongPressed(void);
+
+void Encoder_ButtonTick(void); // Call periodically (e.g. from main loop)
 
 #endif /* INC_DRIVERS_ENCODER_H_ */

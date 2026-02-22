@@ -16,6 +16,9 @@
 
 static uint8_t short_press = 0;
 static uint8_t long_press = 0;
+static uint8_t button_state = 1; // 1 = released, 0 = pressed
+static uint32_t press_start_time = 0;
+static uint8_t long_sent = 0;
 
 
 void Encoder_Init(void)
@@ -48,53 +51,33 @@ encoder_direction_t Encoder_GetDirection(void)
     return ENCODER_NONE;
 }
 
-
-void Encoder_ButtonTask(void)
+void Encoder_ButtonIRQHandler(void)
 {
-    static uint8_t stable_state = 1;     // 1 = released (pull-up)
-    static uint8_t last_raw = 1;
-    static uint32_t last_change_time = 0;
-
-    static uint32_t press_start_time = 0;
-    static uint8_t long_sent = 0;
-
-    uint8_t raw = HAL_GPIO_ReadPin(ENC_BTN_GPIO_Port, ENC_BTN_Pin);
     uint32_t now = HAL_GetTick();
+    uint8_t state = HAL_GPIO_ReadPin(ENC_BTN_GPIO_Port, ENC_BTN_Pin);
 
-    // Debounce
-    if(raw != last_raw)
+    if(state == 0 && button_state == 1) // Button pressed (falling edge)
     {
-        last_change_time = now;
-        last_raw = raw;
+        press_start_time = now;
+        long_sent = 0;
+        button_state = 0;
     }
-
-    if((now - last_change_time) >= BUTTON_DEBOUNCE_MS)
+    else if(state == 1 && button_state == 0) // Button released (rising edge)
     {
-        if(stable_state != raw)
-        {
-            stable_state = raw;
-
-            if(stable_state == 0)
-            {
-                // Button pressed
-                press_start_time = now;
-                long_sent = 0;
-            }
-            else
-            {
-                // Button released
-                uint32_t held = now - press_start_time;
-
-                if(held >= BUTTON_DEBOUNCE_MS && held < BUTTON_LONG_MS)
-                    short_press = 1;
-            }
-        }
+        uint32_t held = now - press_start_time;
+        if(held >= BUTTON_DEBOUNCE_MS && held < BUTTON_LONG_MS && !long_sent)
+            short_press = 1;
+        button_state = 1;
     }
+}
 
-    // Hold
-    if(stable_state == 0 && !long_sent)
+void Encoder_ButtonTick(void)
+{
+    if(button_state == 0 && !long_sent)
     {
-        if((now - press_start_time) >= BUTTON_LONG_MS)
+        uint32_t now = HAL_GetTick();
+        uint32_t held = now - press_start_time;
+        if(held >= BUTTON_LONG_MS)
         {
             long_press = 1;
             long_sent = 1;

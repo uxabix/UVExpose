@@ -1,12 +1,14 @@
 #include "App/app_controller.h"
 #include "App/app_states.h"
 #include "Services/exposure_service.h"
+#include "Services/settings_service.h"
 #include "UI/ui_manager.h"
 #include "Drivers/encoder.h"
 #include "Display/display.h"
 #include "Services/soft_timer.h"
 #include "Services/buzzer.h"
 #include "Safety/safety_manager.h"
+#include "Services/power_manager.h"
 
 // ========== FSM State Machine ==========
 static app_state_t current_state = APP_STATE_INIT;
@@ -150,6 +152,7 @@ void update_battery() {
 
 void App_Init(void)
 {
+	Settings_Init();
     display_init();
     Encoder_Init();
     UI_Init();
@@ -157,6 +160,7 @@ void App_Init(void)
     Buzzer_Init();    // Initialize buzzer service
     Safety_Init();    // Initialize safety manager (lid sensor)
     app_fsm_init();
+    power_manager_notify_activity(); // Initialize activity tick
     update_battery();
 }
 
@@ -173,10 +177,12 @@ void App_Process(void)
 
     // Check for encoder events and pass them to the UI
     App_Controls_Check();
+
+    power_manager_update(); // Check inactivity sleep
+    Encoder_ButtonTick(); // Check for long press while button is held
 }
 
 void App_Controls_Check(void) {
-    Encoder_ButtonTask(); // This needs to be called to update button state
     encoder_direction_t dir = Encoder_GetDirection();
     if(dir == ENCODER_CW) {
         App_Encoder_CW();
@@ -193,18 +199,21 @@ void App_Controls_Check(void) {
 
 void App_Encoder_CW(void)
 {
+    power_manager_notify_activity();
     UI_HandleEvent(UI_EVENT_ROTATE_CW);
     // Encoder rotation in IDLE state - no FSM event needed
 }
 
 void App_Encoder_CCW(void)
 {
+    power_manager_notify_activity();
     UI_HandleEvent(UI_EVENT_ROTATE_CCW);
     // Encoder rotation in IDLE state - no FSM event needed
 }
 
 void App_Encoder_Click(void)
 {
+    power_manager_notify_activity();
     UI_HandleEvent(UI_EVENT_CLICK);
     // Normal click maps to BTN_START_STOP event
     app_fsm_handle_event(APP_EVENT_BTN_START_STOP);
@@ -212,6 +221,7 @@ void App_Encoder_Click(void)
 
 void App_Encoder_Long_Click(void)
 {
+    power_manager_notify_activity();
     UI_HandleEvent(UI_EVENT_LONG_CLICK);
     // Long click maps to BTN_BACK event
     app_fsm_handle_event(APP_EVENT_BTN_BACK);

@@ -17,6 +17,8 @@ static exposure_state_t state = EXPOSURE_STATE_STOPPED;
 static uint32_t total_time_ms = 0;      // Total time set by user
 static uint8_t until_off_mode = 0;      // Continue after timer expires
 static uint8_t beep_mode = 0;           // Beep configuration
+static uint8_t error_flag = 0;          // Error flag
+static uint8_t timer_active_flag = 0;   // Timer active flag
 
 // Runtime
 static uint32_t remaining_time_ms = 0;  // Countdown timer
@@ -81,10 +83,12 @@ void Exposure_Start(uint32_t time_ms, uint8_t until_off_mode_param, uint8_t beep
     if (time_ms > 0) {
         soft_timer_start(&process_timer, PROCESS_TICK_MS);
         state = EXPOSURE_STATE_RUNNING;
+        timer_active_flag = 1;
     } else {
         // Unlimited mode - no timer, just run until stop
         state = EXPOSURE_STATE_RUNNING;
         remaining_time_ms = 0xFFFFFFFF; // Use as marker for "unlimited"
+        timer_active_flag = 0;
     }
 }
 
@@ -104,6 +108,7 @@ void Exposure_Resume(void)
         }
         state = EXPOSURE_STATE_RUNNING;
         PowerChannel_Enable();
+        timer_active_flag = 1;
     }
 }
 
@@ -112,6 +117,7 @@ void Exposure_Stop(void)
     PowerChannel_Disable();
     state = EXPOSURE_STATE_STOPPED;
     remaining_time_ms = 0;
+    timer_active_flag = 0;
 }
 
 exposure_state_t Exposure_GetState(void)
@@ -147,4 +153,15 @@ uint8_t Exposure_IsFinishedUntilOff(void)
 uint8_t Exposure_GetBeepMode(void)
 {
     return beep_mode;
+}
+
+uint8_t Exposure_HasError(void)
+{
+    return error_flag;
+}
+
+uint8_t Exposure_TimerActive(void)
+{
+    // Timer is active if running and total_time_ms > 0
+    return (state == EXPOSURE_STATE_RUNNING && total_time_ms > 0);
 }

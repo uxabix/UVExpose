@@ -222,6 +222,20 @@ void SSD1306_DrawCircle(int16_t x0, int16_t y0, int16_t r, SSD1306_COLOR_t c);
  */
 void SSD1306_DrawFilledCircle(int16_t x0, int16_t y0, int16_t r, SSD1306_COLOR_t c);
 
+/**
+ * @brief  Turns on SSD1306 LCD
+ * @param  None
+ * @retval None
+ */
+void SSD1306_ON(void);
+
+/**
+ * @brief  Turns off SSD1306 LCD
+ * @param  None
+ * @retval None
+ */
+void SSD1306_OFF(void);
+
 
 
 #ifndef ssd1306_I2C_TIMEOUT

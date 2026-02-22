@@ -99,4 +99,16 @@ uint8_t Exposure_IsFinishedUntilOff(void);
  */
 uint8_t Exposure_GetBeepMode(void);
 
+/**
+ * Query if exposure has error
+ * @return 1 if error, 0 otherwise
+ */
+uint8_t Exposure_HasError(void);
+
+/**
+ * Query if exposure timer is active
+ * @return 1 if timer active, 0 otherwise
+ */
+uint8_t Exposure_TimerActive(void);
+
 #endif /* INC_APP_EXPOSURE_SERVICE_H_ */

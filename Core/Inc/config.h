@@ -132,11 +132,6 @@ extern "C" {
  * ============================================================================ */
 
 /**
- * Enable burnout protection (screens off after exposure)
- */
-#define ENABLE_BURNOUT_PROTECTION      1
-
-/**
  * Hall sensor pin active level when lid is considered "open".
  * Use GPIO_PIN_SET for active-high, GPIO_PIN_RESET for active-low.
  * Default: active-high (GPIO_PIN_SET)
