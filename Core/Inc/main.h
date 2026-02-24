@@ -64,6 +64,8 @@ void Error_Handler(void);
 #define EncoderA_GPIO_Port GPIOA
 #define EncoderB_Pin GPIO_PIN_1
 #define EncoderB_GPIO_Port GPIOA
+#define Battery_Pin GPIO_PIN_0
+#define Battery_GPIO_Port GPIOB
 #define Hall_Pin GPIO_PIN_1
 #define Hall_GPIO_Port GPIOB
 #define LED_Output_Pin GPIO_PIN_10

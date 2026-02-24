@@ -9,6 +9,8 @@
 #include "Services/buzzer.h"
 #include "Safety/safety_manager.h"
 #include "Services/power_manager.h"
+#include "Services/battery_service.h"
+#include "Services/adc_service.h"
 
 // ========== FSM State Machine ==========
 static app_state_t current_state = APP_STATE_INIT;
@@ -144,15 +146,17 @@ void app_fsm_process(void)
 
 void update_battery() {
 	if (soft_timer_expired(&battery_update_timer)){
-		// TODO: Here should be a voltage reading and a way to pass it to the UI
-        display_top_bar(50);
-		soft_timer_start(&battery_update_timer, battery_update_period); // 15 seconds
+		BatteryService_Measure();
+        display_top_bar(BatteryService_GetPercentage());
+		soft_timer_start(&battery_update_timer, battery_update_period);
 	}
 }
 
-void App_Init(void)
+void App_Init(ADC_HandleTypeDef* hadc)
 {
+	AdcService_Init(hadc);
 	Settings_Init();
+	BatteryService_Init();
     display_init();
     Encoder_Init();
     UI_Init();
@@ -161,7 +165,7 @@ void App_Init(void)
     Safety_Init();    // Initialize safety manager (lid sensor)
     app_fsm_init();
     power_manager_notify_activity(); // Initialize activity tick
-    update_battery();
+    soft_timer_start(&battery_update_timer, 100); // Trigger first update quickly
 }
 
 void App_Process(void)

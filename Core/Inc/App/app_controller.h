@@ -8,7 +8,9 @@
 #ifndef INC_APP_APP_CONTROLLER_H_
 #define INC_APP_APP_CONTROLLER_H_
 
-void App_Init(void);
+#include "main.h"
+
+void App_Init(ADC_HandleTypeDef* hadc);
 void App_Process(void);
 
 void App_Encoder_CW(void);

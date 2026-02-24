@@ -4,98 +4,86 @@
 #include "Services/exposure_service.h"
 #include "Services/buzzer.h"
 #include "UI/menus/menu_settings.h"
-#include "stm32f1xx_hal.h"
-#if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
-extern ADC_HandleTypeDef hadc1; // Ensure ADC handle exists if ADC is enabled
-#endif
+#include "Services/adc_service.h" // Use the new ADC service
 
 static uint8_t lid_open = 0;
 static uint8_t paused_by_safety = 0;
 
+// Helper function to read and convert Hall sensor value
+static uint16_t _get_hall_sensor_mv() {
+#if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
+    uint16_t raw = AdcService_ReadChannel(LID_HALL_ADC_CHANNEL);
+    uint16_t mv = AdcService_RawToMv(raw);
+    if (LID_HALL_VOLTAGE_DIVIDER_PRESENT) {
+        // Note: This calculation assumes DIVIDER_R_TOP and DIVIDER_R_BOTTOM are for the Hall sensor
+        mv = ((uint64_t)mv * (DIVIDER_R_TOP + DIVIDER_R_BOTTOM)) / DIVIDER_R_BOTTOM;
+    }
+    return mv;
+#else
+    // Digital reading fallback. Note: This assumes active-high logic from config.
+    return (HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin) == LID_HALL_ACTIVE_LEVEL) ? 3300 : 0;
+#endif
+}
+
+
 void Safety_Init(void)
 {
-    // Read initial state (analog or digital)
-    uint32_t mv = 0;
-    #if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
-    // perform a single ADC read
-    HAL_ADC_Start(&hadc1);
-    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-        uint32_t raw = HAL_ADC_GetValue(&hadc1);
-        mv = (raw * ADC_VREF_MV) / ADC_RESOLUTION_MAX;
-    }
-    HAL_ADC_Stop(&hadc1);
-    #else
-    mv = (HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin) == GPIO_PIN_SET) ? ADC_VREF_MV : 0;
-    #endif
+    // Read initial state
+    uint16_t mv = _get_hall_sensor_mv();
 
     // Determine initial logical state using thresholds from settings
     uint16_t open_thr = menu_settings_get_lid_open_threshold_mv();
     uint16_t close_thr = menu_settings_get_lid_close_threshold_mv();
-    if (mv >= open_thr) lid_open = 1;
-    else if (mv <= close_thr) lid_open = 0;
+    if (mv >= open_thr) {
+        lid_open = 1;
+    } else if (mv <= close_thr) {
+        lid_open = 0;
+    }
+    // If between thresholds, initial state depends on previous state, which we don't know.
+    // Defaulting to closed (0) is safer.
+    
     paused_by_safety = 0;
 }
 
 void Safety_Process(void)
 {
-    // If protection disabled in settings, ensure we restore state if we paused
+    uint16_t mv = _get_hall_sensor_mv();
+    uint16_t open_thr = menu_settings_get_lid_open_threshold_mv();
+    uint16_t close_thr = menu_settings_get_lid_close_threshold_mv();
+    uint8_t previous_state = lid_open;
+
+    // If protection is disabled in settings, just update the internal state and exit.
     if (!menu_settings_get_open_lid_protection()) {
         if (paused_by_safety) {
             Exposure_Resume();
             paused_by_safety = 0;
             Buzzer_Stop();
         }
-        // update internal state but do nothing else (use analog if available)
-        #if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
-        HAL_ADC_Start(&hadc1);
-        if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-            uint32_t raw = HAL_ADC_GetValue(&hadc1);
-            uint32_t mv = (raw * ADC_VREF_MV) / ADC_RESOLUTION_MAX;
-            if (LID_HALL_VOLTAGE_DIVIDER_PRESENT) {
-                mv = (mv * (DIVIDER_R_TOP + DIVIDER_R_BOTTOM)) / DIVIDER_R_BOTTOM;
-            }
-            uint16_t open_thr = menu_settings_get_lid_open_threshold_mv();
-            uint16_t close_thr = menu_settings_get_lid_close_threshold_mv();
-            if (mv >= open_thr) lid_open = 1;
-            else if (mv <= close_thr) lid_open = 0;
+        // Update internal state but do nothing else
+        if (mv >= open_thr) {
+            lid_open = 1;
+        } else if (mv <= close_thr) {
+            lid_open = 0;
         }
-        HAL_ADC_Stop(&hadc1);
-        #else
-        uint16_t pin = HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin);
-        lid_open = (pin == LID_HALL_ACTIVE_LEVEL) ? 1 : 0;
-        #endif
         return;
     }
 
-    // Read current sensor value (millivolts)
-    uint32_t mv = 0;
-    #if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
-    HAL_ADC_Start(&hadc1);
-    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-        uint32_t raw = HAL_ADC_GetValue(&hadc1);
-        mv = (raw * ADC_VREF_MV) / ADC_RESOLUTION_MAX;
-        if (LID_HALL_VOLTAGE_DIVIDER_PRESENT) {
-            mv = (mv * (DIVIDER_R_TOP + DIVIDER_R_BOTTOM)) / DIVIDER_R_BOTTOM;
-        }
-    }
-    HAL_ADC_Stop(&hadc1);
-    #else
-    mv = (HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin) == GPIO_PIN_SET) ? ADC_VREF_MV : 0;
-    #endif
-
-    uint16_t open_thr = menu_settings_get_lid_open_threshold_mv();
-    uint16_t close_thr = menu_settings_get_lid_close_threshold_mv();
-
     // Hysteresis: only change state when crossing thresholds
-    uint8_t current = lid_open;
-    if (mv >= open_thr) current = 1;
-    else if (mv <= close_thr) current = 0;
-    if (current == lid_open) return;
+    if (mv >= open_thr) {
+        lid_open = 1;
+    } else if (mv <= close_thr) {
+        lid_open = 0;
+    }
+    
+    // If state has not changed, do nothing.
+    if (lid_open == previous_state) {
+        return;
+    }
 
-    lid_open = current;
+    // State has changed, act on it.
     if (lid_open)
     {
-        // Lid opened: pause exposure (if running) and start continuous beep
+        // Lid just opened: pause exposure (if running) and start continuous beep
         if (Exposure_IsRunning()) {
             Exposure_Pause();
             paused_by_safety = 1;
@@ -106,7 +94,7 @@ void Safety_Process(void)
     }
     else
     {
-        // Lid closed: resume exposure if we paused it and stop buzzer
+        // Lid just closed: resume exposure if we paused it and stop buzzer
         if (paused_by_safety) {
             Exposure_Resume();
             paused_by_safety = 0;
@@ -129,7 +117,7 @@ uint8_t Safety_CanSleep(void)
     // - timer not running
     if (Exposure_IsRunning()) return 0;
     if (Safety_IsLidOpen()) return 0;
-    if (Exposure_HasError()) return 0;
-    if (Exposure_TimerActive()) return 0;
+    //if (Exposure_HasError()) return 0;
+    //if (Exposure_TimerActive()) return 0;
     return 1;
 }

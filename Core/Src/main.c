@@ -93,7 +93,7 @@ int main(void)
   MX_TIM2_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  App_Init();
+  App_Init(&hadc1);
   /* USER CODE END 2 */
 
   /* Infinite loop */

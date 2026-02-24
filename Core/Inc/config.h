@@ -154,6 +154,13 @@ extern "C" {
  */
 #define LID_HALL_USE_ADC               1
 
+/**
+ * ADC channel for the linear Hall sensor.
+ * Make sure this corresponds to the channel configured in CubeMX.
+ * NOTE: This is a HAL definition, ensure it's correct for your setup.
+ */
+#define LID_HALL_ADC_CHANNEL           ADC_CHANNEL_9 // Example, PLEASE ADJUST
+
 /** ADC reference voltage (millivolts) and ADC resolution (max code) */
 #define ADC_VREF_MV                    3300u
 #define ADC_RESOLUTION_MAX             4095u
@@ -188,6 +195,70 @@ extern "C" {
  * when idle
  */
 #define IDLE_BRIGHTNESS_LEVEL          50
+
+/* ============================================================================
+ * BATTERY MONITORING CONFIGURATION
+ * ============================================================================ */
+
+/**
+ * Enable Battery Service (1 = enabled, 0 = disabled)
+ * If disabled, the service will not be compiled, and all related checks
+ * will be bypassed.
+ */
+#define BATTERY_SERVICE_ENABLED 1
+
+/**
+ * ADC channel for battery voltage measurement.
+ * Make sure this corresponds to the channel configured in CubeMX for the battery pin.
+ * Example: ADC_CHANNEL_0, ADC_CHANNEL_1, etc.
+ * NOTE: This is a HAL definition, ensure it's correct for your setup.
+ */
+#define BATTERY_ADC_CHANNEL ADC_CHANNEL_8 // Example, PLEASE ADJUST
+
+/* -------------------------------------------------------------------------- */
+/* Voltage Divider Configuration                                              */
+/* -------------------------------------------------------------------------- */
+/**
+ * The battery voltage is measured through a voltage divider.
+ * Vout = Vbat * (R_BOTTOM / (R_TOP + R_BOTTOM))
+ * Provide the resistor values. Using identical values simplifies math.
+ * For higher precision with integers, you can use scaled values (e.g., kOhms).
+ */
+#define BATTERY_DIVIDER_R_TOP     10000u /* R_top in ohms */
+#define BATTERY_DIVIDER_R_BOTTOM  10000u /* R_bottom in ohms */
+
+/* -------------------------------------------------------------------------- */
+/* Battery Characteristics (in Millivolts)                                    */
+/* -------------------------------------------------------------------------- */
+/**
+ * These values define the battery's voltage range for percentage calculation.
+ * This assumes a linear discharge curve. All values are in millivolts.
+ */
+#define BATTERY_MAX_MV            4200u // Voltage of a fully charged battery (e.g., Li-Ion)
+#define BATTERY_MIN_MV            3000u // Voltage of a fully discharged battery (cutoff)
+
+/**
+ * Voltage thresholds for safety actions.
+ */
+#define BATTERY_WARNING_MV        3300u // Level to show a warning to the user
+#define BATTERY_CRITICAL_MV       3100u // Level to force shutdown/stop operations
+
+/**
+ * Software hysteresis to prevent rapid state changes near a threshold.
+ * When in a critical state, the voltage must rise above (THRESHOLD + HYSTERESIS)
+ * to be considered normal again. In millivolts.
+ */
+#define BATTERY_HYSTERESIS_MV     150u
+
+/* -------------------------------------------------------------------------- */
+/* ADC Filtering Configuration                                                */
+/* -------------------------------------------------------------------------- */
+/**
+ * Number of ADC samples for the moving average filter.
+ * A larger value gives more stability but slower response.
+ * MUST be a power of 2 for efficient integer arithmetic (e.g., 2, 4, 8, 16).
+ */
+#define BATTERY_FILTER_SAMPLES_COUNT 8
 
 /* ============================================================================
  * SETTINGS STORAGE CONFIGURATION
