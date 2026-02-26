@@ -17,7 +17,7 @@
 *.map
 
 # CubeMX / STM32CubeIDE Generated
-/Core/Src/*.[ocm] # если хочешь игнорировать генерацию HAL (не обязательно)
+/Core/Src/*.[ocm]
 *.d
 *.dep
 *.lst
@@ -32,3 +32,15 @@
 # OS specific
 .DS_Store
 Thumbs.db
+
+# KiCad - Temporary files and locks
+*.lck
+*.kicad_prl
+fp-info-cache
+
+# KiCad - Backups and autosaves
+*.bak
+*.kicad_pcb-bak
+*.kicad_sch-bak
+_autosave-*
+Schematics/UV_Expose/UV_Expose-backups/

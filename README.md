@@ -3,7 +3,38 @@
 UVExpose is a portable embedded UV exposure controller built on STM32F103C6.
 The device is designed for precise timed UV illumination with safety protection, battery operation, and a structured modular firmware architecture suitable for long-term extension.
 
-This project is part of an engineering diploma work in Computer Science and emphasizes clean architecture, scalability, and reliability in embedded systems.
+## 📋 Table of Contents
+
+- [UVExpose](#uvexpose)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [✨ Features](#-features)
+    - [Core functionality](#core-functionality)
+    - [Safety system](#safety-system)
+    - [Power management](#power-management)
+    - [User interface](#user-interface)
+    - [Audio feedback](#audio-feedback)
+  - [🧠 Firmware Architecture](#-firmware-architecture)
+    - [Application Layer](#application-layer)
+    - [Service Layer](#service-layer)
+    - [Safety Layer](#safety-layer)
+    - [UI Layer](#ui-layer)
+    - [Drivers Layer](#drivers-layer)
+  - [📁 Project Structure](#-project-structure)
+  - [⚙️ Hardware Platform](#️-hardware-platform)
+    - [MCU](#mcu)
+    - [Peripherals](#peripherals)
+  - [🔌 Schematics](#-schematics)
+  - [🔋 Battery Support](#-battery-support)
+  - [💾 Data Storage](#-data-storage)
+  - [💤 Power Management](#-power-management)
+  - [🔔 Buzzer Behavior](#-buzzer-behavior)
+  - [🖥️ Build \& Flash](#️-build--flash)
+    - [Requirements](#requirements)
+    - [Build Steps](#build-steps)
+  - [🧩 Design Goals](#-design-goals)
+  - [📚 Documentation](#-documentation)
+  - [🛠️ Future Improvements](#️-future-improvements)
+  - [📜 License](#-license)
 
 ## ✨ Features
 ### Core functionality
@@ -120,6 +151,12 @@ The project is generated and configured using STM32CubeMX and built in STM32Cube
 - Battery voltage divider
 - MOSFET-controlled UV LED channel
 
+## 🔌 Schematics
+
+The hardware schematic provides a detailed view of the components and connections.
+
+![Schematic](Demonstration/UV_Expose.svg)
+
 ## 🔋 Battery Support
 
 The firmware supports configurable battery configurations:
@@ -216,3 +253,35 @@ Planned enhancements include:
 - External sensor support
 - Improved UI navigation
 - Data logging capability
+
+## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+<details>
+<summary>Full License Text</summary>
+
+```
+MIT License
+
+Copyright (c) 2026 Kiryl Alishkevich
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+</details>
