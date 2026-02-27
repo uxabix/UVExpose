@@ -1,6 +1,6 @@
 #include "Services/settings_service.h"
+#include "Services/flash_storage.h"
 #include "config.h"
-#include "stm32f1xx_hal.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -18,16 +18,9 @@ uint32_t Settings_CalcCRC(const settings_t *cfg)
 
 void Settings_Save(const settings_t *cfg)
 {
-    HAL_FLASH_Unlock();
-
-    FLASH_EraseInitTypeDef erase;
-    uint32_t page_error;
-
-    erase.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase.PageAddress = SETTINGS_FLASH_ADDR;
-    erase.NbPages = 1;
-
-    HAL_FLASHEx_Erase(&erase, &page_error);
+    if (!FlashStorage_ErasePage(SETTINGS_FLASH_ADDR)) {
+        return;
+    }
 
     settings_t temp = *cfg;
     temp.crc = Settings_CalcCRC(cfg);
@@ -35,17 +28,17 @@ void Settings_Save(const settings_t *cfg)
     uint32_t *data = (uint32_t*)&temp;
     for(uint32_t i = 0; i < sizeof(settings_t)/4; i++)
     {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
-                          SETTINGS_FLASH_ADDR + i*4,
-                          data[i]);
+        if (!FlashStorage_ProgramWord(SETTINGS_FLASH_ADDR + i*4, data[i])) {
+            return;
+        }
     }
-
-    HAL_FLASH_Lock();
 }
 
 int Settings_Load(settings_t *cfg)
 {
-    memcpy(cfg, (void*)SETTINGS_FLASH_ADDR, sizeof(settings_t));
+    if (!FlashStorage_Read(SETTINGS_FLASH_ADDR, cfg, sizeof(settings_t))) {
+        return 0;
+    }
     uint32_t crc = Settings_CalcCRC(cfg);
     if (cfg->crc != crc)
         return 0;

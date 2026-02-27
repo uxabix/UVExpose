@@ -21,7 +21,7 @@ uint8_t menu_expose_options_get_until_off(void);
 // Setters
 void menu_expose_options_set_until_off(uint8_t enabled);
 void menu_expose_options_set_beep_mode(uint8_t mode);
-void menu_expose_options_set_time_ms(uint16_t time_ms);
+void menu_expose_options_set_time_ms(uint32_t time_ms);
 
 // Debug: Reset to defaults
 void menu_expose_options_reset_to_defaults(void);

@@ -12,6 +12,7 @@
 #include "UI/menus/menu_expose_mode.h"
 #include "Display/display.h"
 #include "Helpers/simple_formatters.h"
+#include "Services/presets_service.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -118,9 +119,9 @@ void menu_expose_options_set_beep_mode(uint8_t mode)
 }
 
 // ========== Setter for time ==========
-void menu_expose_options_set_time_ms(uint16_t time_ms)
+void menu_expose_options_set_time_ms(uint32_t time_ms)
 {
-    uint16_t total_seconds = time_ms / 1000;
+    uint32_t total_seconds = time_ms / 1000u;
     time_minutes = total_seconds / 60;
     time_seconds = total_seconds % 60;
     
@@ -261,8 +262,21 @@ static void on_event(ui_event_t event)
                     break;
 
                 case 5:
+                {
                     // Save preset
+                    preset_t preset;
+                    uint32_t total_seconds = menu_expose_options_get_time_ms() / 1000u;
+                    if (total_seconds > 5999u) {
+                        total_seconds = 5999u;
+                    }
+
+                    preset.minutes = (uint8_t)(total_seconds / 60u);
+                    preset.seconds = (uint8_t)(total_seconds % 60u);
+                    preset.buzzer_mode = beep_mode;
+                    preset.until_off = (uint8_t)(until_off_mode ? 1u : 0u);
+                    (void)Presets_Add(&preset);
                     break;
+                }
 
                 case 6:
                     UI_SetMenu(&menu_running);

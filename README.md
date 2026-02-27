@@ -187,6 +187,79 @@ Features:
 - Validation on load
 - Persistent across power cycles
 
+### Preset Storage (Detailed)
+
+Presets are handled by a dedicated `presets_service` and stored on a separate Flash page from `settings_service`.
+
+- `settings_service`: one settings struct, full-page erase + rewrite
+- `presets_service`: append-only journal of preset operations
+- common low-level API for both: `flash_storage`
+
+#### Preset identity and deduplication
+
+A preset is uniquely defined by:
+
+- `minutes` (0..99)
+- `seconds` (0..59)
+- `buzzer_mode` (`silent`, `single`, `multiple`)
+- `until_off` (`false` / `true`)
+
+If all fields match an existing active preset, the new one is not saved.
+
+#### Flash record format
+
+Logical record payload:
+
+- `minutes` (1 byte)
+- `seconds` (1 byte)
+- `flags` (1 byte)
+
+`flags` bit layout:
+
+- bit `0..1`: buzzer mode
+- bit `2`: `until_off`
+- bit `3`: `active` (`1` = active preset, `0` = delete tombstone)
+- bit `4..7`: reserved for future extensions
+
+STM32F1 writes are half-word aligned, so storage uses a 4-byte physical record (`3-byte payload + 1-byte pad`).
+
+#### Journal behavior
+
+- Add preset: append record with `active=1`
+- Delete preset: append tombstone record with same preset fields and `active=0`
+- No page erase on normal add/delete operations
+
+On boot, `Presets_Init()` replays records from the start of the page up to the first erased slot:
+
+- active record -> add/update preset in RAM
+- tombstone record -> remove preset from RAM
+
+RAM list is the source for UI rendering and selection.
+
+#### Garbage collection (GC)
+
+GC runs only when the journal page is full and deleted history exists:
+
+1. collect active presets from RAM
+2. erase presets page
+3. rewrite only active presets contiguously
+4. continue appending new records
+
+If page is full and cannot be compacted, save returns `FULL` and preset is not stored.
+
+#### Capacity and limits
+
+- physical journal capacity: `PRESETS_FLASH_PAGE_SIZE / 4` records
+- logical active preset limit for UI: `PRESETS_MAX_COUNT` (currently `64`)
+
+#### Power-loss robustness
+
+Append-only replay is resilient for embedded power-loss cases:
+
+- old committed data remains valid
+- partial tail write is ignored during replay
+- current state is reconstructed from committed journal records
+
 ## 💤 Power Management
 
 The system implements power optimization strategies:
@@ -195,6 +268,16 @@ The system implements power optimization strategies:
 - Peripheral shutdown before sleep
 - Wake-up via external interrupt
 - Configurable power policies
+
+### Debug LED behavior (`LED_Debug`)
+
+`LED_Debug` is used only in `DEBUG` builds (`#ifdef DEBUG`):
+
+- On startup, MCU blinks `LED_Debug` 3 times.
+- Right before entering STOP sleep, `LED_Debug` is turned ON.
+- Immediately after wake-up from STOP, `LED_Debug` is turned OFF.
+
+In non-DEBUG (release) builds, this logic is disabled and does not affect runtime behavior.
 
 ## 🔔 Buzzer Behavior
 

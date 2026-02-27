@@ -2,6 +2,7 @@
 #include "App/app_states.h"
 #include "Services/exposure_service.h"
 #include "Services/settings_service.h"
+#include "Services/presets_service.h"
 #include "UI/ui_manager.h"
 #include "Drivers/encoder.h"
 #include "Display/display.h"
@@ -154,8 +155,11 @@ void update_battery() {
 
 void App_Init(ADC_HandleTypeDef* hadc)
 {
+    power_manager_debug_startup_blink();
+
 	AdcService_Init(hadc);
 	Settings_Init();
+    Presets_Init();
 	BatteryService_Init();
     display_init();
     Encoder_Init();

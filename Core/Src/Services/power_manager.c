@@ -2,6 +2,7 @@
 #include "Services/settings_service.h"
 #include "Safety/safety_manager.h"
 #include "Display/display.h"
+#include "main.h"
 #include <stm32f1xx_hal.h>
 
 static uint32_t last_activity_tick = 0;
@@ -15,6 +16,29 @@ static const uint32_t sleep_timeouts_s[] = {
     1800    // 30m
 };
 #define SLEEP_TIMEOUTS_COUNT (sizeof(sleep_timeouts_s) / sizeof(uint32_t))
+
+#ifdef DEBUG
+#define DEBUG_LED_BLINK_COUNT 3u
+#define DEBUG_LED_BLINK_ON_MS 70u
+#define DEBUG_LED_BLINK_OFF_MS 70u
+#define DEBUG_LED_ACTIVE_LEVEL GPIO_PIN_RESET
+
+static GPIO_PinState debug_led_inactive_level(void)
+{
+    return (DEBUG_LED_ACTIVE_LEVEL == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET;
+}
+
+static void debug_led_set(uint8_t on)
+{
+    HAL_GPIO_WritePin(LED_Debug_GPIO_Port, LED_Debug_Pin,
+                      on ? DEBUG_LED_ACTIVE_LEVEL : debug_led_inactive_level());
+}
+#else
+static void debug_led_set(uint8_t on)
+{
+    (void)on;
+}
+#endif
 
 void power_manager_notify_activity(void)
 {
@@ -41,6 +65,11 @@ void power_manager_update(void)
 
 void power_manager_sleep(void)
 {
+#ifdef DEBUG
+    // In DEBUG build keep LED on while MCU is in STOP.
+    debug_led_set(1u);
+#endif
+
     // Turn off display and peripherals before sleeping
     display_off();
     HAL_SuspendTick();
@@ -52,5 +81,23 @@ void power_manager_sleep(void)
     display_init();
     display_on();
 
+#ifdef DEBUG
+    // Turn off debug LED as soon as MCU wakes.
+    debug_led_set(0u);
+#endif
+
     power_manager_notify_activity(); // Reset activity after wakeup
+}
+
+void power_manager_debug_startup_blink(void)
+{
+#ifdef DEBUG
+    debug_led_set(0u);
+    for (uint8_t i = 0u; i < DEBUG_LED_BLINK_COUNT; ++i) {
+        debug_led_set(1u);
+        HAL_Delay(DEBUG_LED_BLINK_ON_MS);
+        debug_led_set(0u);
+        HAL_Delay(DEBUG_LED_BLINK_OFF_MS);
+    }
+#endif
 }

@@ -14,6 +14,8 @@
 extern "C" {
 #endif
 
+#define DEBUG 1
+
 /* ============================================================================
  * GPIO OUTPUT LEVELS CONFIGURATION
  * ============================================================================ */
@@ -264,16 +266,22 @@ extern "C" {
  * SETTINGS STORAGE CONFIGURATION
  * ============================================================================ */
 /**
- * Flash address for settings storage (last page)
- * Adjust for your STM32 model
+ * Flash page allocation (STM32F103C6, 1KB pages).
+ * Keep settings and presets on dedicated pages.
  */
-#define SETTINGS_FLASH_ADDR 0x08007C00 // Last 1KB page for STM32F103C6 (32KB flash)
-#define SETTINGS_FLASH_PAGE_SIZE 1024
+#define SETTINGS_FLASH_PAGE_SIZE 1024u
+#define PRESETS_FLASH_PAGE_SIZE  1024u
 
 /**
- * Maximum number of presets
+ * Last page: settings. Previous page: presets.
  */
-#define SETTINGS_MAX_PRESETS 5
+#define SETTINGS_FLASH_ADDR 0x08007C00u
+#define PRESETS_FLASH_ADDR  0x08007800u
+
+/**
+ * Logical UI limit for active presets in RAM and menus.
+ */
+#define PRESETS_MAX_COUNT   64u
 
 #ifdef __cplusplus
 }
