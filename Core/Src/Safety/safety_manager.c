@@ -8,20 +8,25 @@
 
 static uint8_t lid_open = 0;
 static uint8_t paused_by_safety = 0;
+static uint16_t hall_last_raw = 0;
+static uint16_t hall_last_mv = 0;
 
 // Helper function to read and convert Hall sensor value
 static uint16_t _get_hall_sensor_mv() {
 #if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
-    uint16_t raw = AdcService_ReadChannel(LID_HALL_ADC_CHANNEL);
-    uint16_t mv = AdcService_RawToMv(raw);
+    hall_last_raw = AdcService_ReadChannel(LID_HALL_ADC_CHANNEL);
+    uint16_t mv = AdcService_RawToMv(hall_last_raw);
     if (LID_HALL_VOLTAGE_DIVIDER_PRESENT) {
         // Note: This calculation assumes DIVIDER_R_TOP and DIVIDER_R_BOTTOM are for the Hall sensor
         mv = ((uint64_t)mv * (DIVIDER_R_TOP + DIVIDER_R_BOTTOM)) / DIVIDER_R_BOTTOM;
     }
-    return mv;
+    hall_last_mv = mv;
+    return hall_last_mv;
 #else
     // Digital reading fallback. Note: This assumes active-high logic from config.
-    return (HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin) == LID_HALL_ACTIVE_LEVEL) ? 3300 : 0;
+    hall_last_mv = (HAL_GPIO_ReadPin(Hall_GPIO_Port, Hall_Pin) == LID_HALL_ACTIVE_LEVEL) ? 3300 : 0;
+    hall_last_raw = (hall_last_mv > 0) ? ADC_RESOLUTION_MAX : 0;
+    return hall_last_mv;
 #endif
 }
 
@@ -120,4 +125,14 @@ uint8_t Safety_CanSleep(void)
     //if (Exposure_HasError()) return 0;
     //if (Exposure_TimerActive()) return 0;
     return 1;
+}
+
+uint16_t Safety_GetHallSensorMv(void)
+{
+    return hall_last_mv;
+}
+
+uint16_t Safety_GetHallSensorRaw(void)
+{
+    return hall_last_raw;
 }

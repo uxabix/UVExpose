@@ -11,6 +11,8 @@
 #include "UI/menus/menu_settings.h"
 #include "UI/menus/menu_presets.h"
 #include "UI/menus/menu_expose_options.h"
+#include "UI/menus/menu_battery_info.h"
+#include "UI/menus/menu_hall_info.h"
 
 #include <stddef.h>
 

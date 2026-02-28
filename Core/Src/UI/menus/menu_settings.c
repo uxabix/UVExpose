@@ -9,6 +9,8 @@
 #include "UI/ui_manager.h"
 #include "Display/display.h"
 #include "UI/menus/menu_main.h"
+#include "UI/menus/menu_battery_info.h"
+#include "UI/menus/menu_hall_info.h"
 
 #include "config.h"
 #include "Services/settings_service.h"
@@ -23,7 +25,7 @@ static uint8_t selected_row_index = 0;
 static uint8_t scroll_offset = 0;
 
 #define VISIBLE_ROWS 4
-#define ITEM_COUNT 9
+#define ITEM_COUNT 11
 
 #define SLEEP_OPTION_COUNT 6
 static const char* sleep_options[] = {
@@ -49,6 +51,8 @@ static char items[ITEM_COUNT][16] = {
     "  Pause:200ms",
     "LidOpen:2000mV",
     "  Close:1800mV",
+    "Battery info",
+    "Hall info",
     "Save settings",
 };
 
@@ -59,8 +63,10 @@ static void update_display_text()
         items[i][0] = '\0';
     }
 
-    // Restore static text for Save settings
-    strcpy(items[8], "Save settings");
+    // Restore static text for navigation rows
+    strcpy(items[8], "Battery info");
+    strcpy(items[9], "Hall info");
+    strcpy(items[10], "Save settings");
 
     // Update toggles
     strcpy(items[0], g_settings.burn_in_protection ? "+Burn-in prot." : "-Burn-in prot.");
@@ -151,6 +157,10 @@ static void on_event(ui_event_t event)
                 if (g_settings.lid_close_threshold_mv > ADC_VREF_MV) g_settings.lid_close_threshold_mv = 0;
                 update_display_text();
             } else if (selected_row_index == 8) {
+                UI_SetMenu(&menu_battery_info);
+            } else if (selected_row_index == 9) {
+                UI_SetMenu(&menu_hall_info);
+            } else if (selected_row_index == 10) {
                 // Save settings
                 Settings_Save(&g_settings);
                 UI_SetMenu(&menu_main);
