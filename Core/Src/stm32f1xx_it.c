@@ -206,9 +206,9 @@ void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
   if(__HAL_GPIO_EXTI_GET_IT(ENC_BTN_Pin) != RESET)
-    {
-        __HAL_GPIO_EXTI_CLEAR_IT(ENC_BTN_Pin);
-        Encoder_ButtonIRQHandler();
+  {
+      __HAL_GPIO_EXTI_CLEAR_IT(ENC_BTN_Pin);
+      Encoder_ButtonIRQHandler();
   }
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(ENC_BTN_Pin);

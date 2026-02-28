@@ -11,6 +11,34 @@ static uint8_t paused_by_safety = 0;
 static uint16_t hall_last_raw = 0;
 static uint16_t hall_last_mv = 0;
 
+static uint8_t _resolve_lid_state_with_hysteresis(uint16_t mv, uint16_t open_thr, uint16_t close_thr, uint8_t current_state)
+{
+    // Normal polarity: OPEN threshold is above CLOSE threshold.
+    if (open_thr > close_thr) {
+        if (mv >= open_thr) {
+            return 1u;
+        }
+        if (mv <= close_thr) {
+            return 0u;
+        }
+        return current_state;
+    }
+
+    // Inverted polarity: OPEN threshold is below CLOSE threshold.
+    if (open_thr < close_thr) {
+        if (mv <= open_thr) {
+            return 1u;
+        }
+        if (mv >= close_thr) {
+            return 0u;
+        }
+        return current_state;
+    }
+
+    // Degenerate case (no hysteresis window).
+    return (mv >= open_thr) ? 1u : 0u;
+}
+
 // Helper function to read and convert Hall sensor value
 static uint16_t _get_hall_sensor_mv() {
 #if LID_HALL_USE_ADC && defined(HAL_ADC_MODULE_ENABLED)
@@ -39,13 +67,7 @@ void Safety_Init(void)
     // Determine initial logical state using thresholds from settings
     uint16_t open_thr = menu_settings_get_lid_open_threshold_mv();
     uint16_t close_thr = menu_settings_get_lid_close_threshold_mv();
-    if (mv >= open_thr) {
-        lid_open = 1;
-    } else if (mv <= close_thr) {
-        lid_open = 0;
-    }
-    // If between thresholds, initial state depends on previous state, which we don't know.
-    // Defaulting to closed (0) is safer.
+    lid_open = _resolve_lid_state_with_hysteresis(mv, open_thr, close_thr, 0u);
     
     paused_by_safety = 0;
 }
@@ -73,12 +95,10 @@ void Safety_Process(void)
         return;
     }
 
-    // Hysteresis: only change state when crossing thresholds
-    if (mv >= open_thr) {
-        lid_open = 1;
-    } else if (mv <= close_thr) {
-        lid_open = 0;
-    }
+    // Hysteresis with automatic polarity handling:
+    // - open_thr > close_thr: normal polarity
+    // - open_thr < close_thr: inverted polarity
+    lid_open = _resolve_lid_state_with_hysteresis(mv, open_thr, close_thr, lid_open);
     
     // If state has not changed, do nothing.
     if (lid_open == previous_state) {

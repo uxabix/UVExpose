@@ -177,7 +177,8 @@ extern "C" {
 
 /**
  * Default thresholds for linear Hall sensor in millivolts.
- * `OPEN` should be higher than `CLOSE` for typical sensors (hysteresis)
+ * Typical polarity: `OPEN` > `CLOSE`.
+ * Inverted polarity is also supported by the runtime logic (`OPEN` < `CLOSE`).
  */
 #define LID_HALL_OPEN_THRESHOLD_MV     2000u
 #define LID_HALL_CLOSE_THRESHOLD_MV    1800u
@@ -282,6 +283,15 @@ extern "C" {
  * Logical UI limit for active presets in RAM and menus.
  */
 #define PRESETS_MAX_COUNT   64u
+
+/* Compile-time sanity checks for data pages placement. */
+#if ((PRESETS_FLASH_ADDR + PRESETS_FLASH_PAGE_SIZE) > SETTINGS_FLASH_ADDR)
+#error "Presets page overlaps settings page"
+#endif
+
+#if ((SETTINGS_FLASH_ADDR + SETTINGS_FLASH_PAGE_SIZE) > 0x08008000u)
+#error "Settings page is outside STM32F103C6 32KB flash"
+#endif
 
 #ifdef __cplusplus
 }

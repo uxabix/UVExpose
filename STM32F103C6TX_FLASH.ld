@@ -45,7 +45,11 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 10K
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 32K
+  /* Reserve last 2KB flash pages for runtime data:
+   * 0x08007800..0x08007BFF - presets journal
+   * 0x08007C00..0x08007FFF - settings
+   */
+  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 30K
 }
 
 /* Sections */

@@ -146,7 +146,7 @@ static void on_enter(void)
 static void on_event(ui_event_t event)
 {
     if (preset_count == 0u) {
-        if (event == UI_EVENT_LONG_CLICK) {
+        if (event == UI_EVENT_CLICK || event == UI_EVENT_LONG_CLICK) {
             UI_SetMenu(&menu_main);
         }
         return;
