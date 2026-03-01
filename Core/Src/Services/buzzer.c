@@ -8,6 +8,7 @@
 
 #include "Services/buzzer.h"
 #include "Services/soft_timer.h"
+#include "Services/settings_service.h"
 #include "gpio.h"
 #include "main.h"
 #include "config.h"
@@ -27,15 +28,14 @@ static buzzer_mode_t current_mode = BUZZER_MODE_SILENT;
 static buzzer_state_t current_state = BUZZER_IDLE;
 static soft_timer_t beep_timer;
 
-// Timing parameters (in milliseconds) - imported from config.h78нрот
-// #define SINGLE_BEEP_DURATION is now BUZZER_SINGLE_BEEP_DURATION
+// Timing parameters (in milliseconds) - imported from config.h
 // #define REPEAT_BEEP_PERIOD is now BUZZER_REPEAT_BEEP_PERIOD
 // #define REPEAT_BEEP_ON_TIME is now BUZZER_REPEAT_BEEP_ON_TIME
 
 // Multi-beep pattern settings (for BUZZER_MODE_BEEP_ONCE)
-static uint8_t beep_count = 1;                 // Number of beeps to play
-static uint16_t beep_duration = BUZZER_SINGLE_BEEP_DURATION;  // Duration of each beep
-static uint16_t beep_period = 200;             // Period (silence) between beeps
+static uint8_t beep_count = SETTINGS_DEFAULT_BEEP_COUNT;                   // Number of beeps to play
+static uint16_t beep_duration = SETTINGS_DEFAULT_BEEP_DURATION_MS;         // Duration of each beep
+static uint16_t beep_period = SETTINGS_DEFAULT_BEEP_PERIOD_MS;             // Period (silence) between beeps
 
 // Multi-beep runtime tracking
 static uint8_t beep_counter = 0;               // How many beeps have been played
@@ -54,10 +54,8 @@ void Buzzer_Init(void)
     current_mode = BUZZER_MODE_SILENT;
     beep_counter = 0;
     
-    // Initialize beep pattern with defaults from config.h
-    beep_count = BUZZER_DEFAULT_BEEP_COUNT;
-    beep_duration = BUZZER_SINGLE_BEEP_DURATION;
-    beep_period = BUZZER_DEFAULT_BEEP_PERIOD;
+    // Initialize pattern from persisted settings (with clamping).
+    Buzzer_SetBeepPattern(g_settings.beep_count, g_settings.beep_duration, g_settings.beep_period);
 }
 
 static void buzzer_on(void)
@@ -178,3 +176,4 @@ void Buzzer_Process(void)
             break;
     }
 }
+

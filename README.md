@@ -1,370 +1,153 @@
 # UVExpose
 
-UVExpose is a portable embedded UV exposure controller built on STM32F103C6.
-The device is designed for precise timed UV illumination with safety protection, battery operation, and a structured modular firmware architecture suitable for long-term extension.
-
-## 📋 Table of Contents
-
-- [UVExpose](#uvexpose)
-  - [📋 Table of Contents](#-table-of-contents)
-  - [✨ Features](#-features)
-    - [Core functionality](#core-functionality)
-    - [Safety system](#safety-system)
-    - [Power management](#power-management)
-    - [User interface](#user-interface)
-    - [Audio feedback](#audio-feedback)
-  - [🧠 Firmware Architecture](#-firmware-architecture)
-    - [Application Layer](#application-layer)
-    - [Service Layer](#service-layer)
-    - [Safety Layer](#safety-layer)
-    - [UI Layer](#ui-layer)
-    - [Drivers Layer](#drivers-layer)
-  - [📁 Project Structure](#-project-structure)
-  - [⚙️ Hardware Platform](#️-hardware-platform)
-    - [MCU](#mcu)
-    - [Peripherals](#peripherals)
-  - [🔌 Schematics](#-schematics)
-  - [🔋 Battery Support](#-battery-support)
-  - [💾 Data Storage](#-data-storage)
-  - [💤 Power Management](#-power-management)
-  - [🔔 Buzzer Behavior](#-buzzer-behavior)
-  - [🖥️ Build \& Flash](#️-build--flash)
-    - [Requirements](#requirements)
-    - [Build Steps](#build-steps)
-  - [🧩 Design Goals](#-design-goals)
-  - [📚 Documentation](#-documentation)
-  - [🛠️ Future Improvements](#️-future-improvements)
-  - [📜 License](#-license)
-
-## ✨ Features
-### Core functionality
-
-- Precise exposure timer with configurable duration
-- Multiple exposure modes
-- Preset save/load system stored in internal Flash
-- Real-time countdown display
-- Battery-powered operation
-
-### Safety system
-
-- Lid open detection via Hall sensor
-- Over-temperature and overload monitoring
-- Automatic shutdown on unsafe conditions
-- Configurable battery protection thresholds
-
-### Power management
-
-- Battery level monitoring with adjustable divider ratio
-- Configurable undervoltage cutoff for different battery types
-- Automatic sleep mode on inactivity
-- Wake-up via user input
-
-### User interface
-
-- Rotary encoder navigation
-- Short and long press support
-- OLED display (SSD1306 over I2C)
-- Menu-driven UI architecture
-
-### Audio feedback
-
-Configurable buzzer modes:
-- Single beep after exposure
-- Continuous alarm until acknowledged
-- Silent mode
-
-## 🧠 Firmware Architecture
-
-The firmware follows a layered modular architecture designed for maintainability and scalability.
-
-### Application Layer
-
-Controls high-level behavior and system state.
-
-- `app_controller` — main application logic and state transitions
-- `app_states` — global system states
-- `power_channel` — exposure channel control
-
-### Service Layer
-
-Independent reusable modules that provide system functionality.
-
-- `exposure_service` — exposure timing logic
-- `battery_service` — voltage measurement and charge estimation
-- `settings_service` — Flash storage management
-- `adc_service` — sensor measurement abstraction
-- `power_manager` — power state and sleep control
-- `buzzer` — sound signaling system
-- `soft_timer` — software timing utilities
-
-### Safety Layer
-
-- `safety_manager` — hardware and runtime protection system
+UVExpose is a portable UV exposure controller firmware for STM32F103C6.
+The project uses a modular architecture with persistent settings, preset storage in Flash, battery protection logic, and an encoder-driven OLED UI.
 
-### UI Layer
+## Navigation
 
-- `ui_manager` — menu control and navigation
-- Menu modules:
-  - main menu
-  - exposure mode selection
-  - exposure options
-  - presets management
-  - runtime screen
-  - settings
+- [Features](#features)
+- [Architecture](#architecture)
+- [Schematics](#schematics)
+- [Battery Policy (Current Behavior)](#battery-policy-current-behavior)
+- [Preset Storage](#preset-storage)
+- [Settings Storage](#settings-storage)
+- [Debug LED](#debug-led)
+- [Encoder](#encoder)
+- [Display Burn-in Protection](#display-burn-in-protection)
+- [Build and Flash](#build-and-flash)
+- [Documentation](#documentation)
+- [License](#license)
 
-### Drivers Layer
+## Features
 
-- `encoder` — rotary encoder with interrupt wakeup support
-- `ssd1306` display driver
-- STM32 HAL drivers
+- Exposure timer with finite and "until off" modes
+- Presets: save, start, delete, deduplication
+- Persistent user settings in internal Flash
+- Hall sensor lid protection with hysteresis and auto polarity handling
+- Battery monitoring with warning/low/critical behavior
+- Inactivity sleep mode with wake-up by user input
+- OLED menu UI with short/long button press support
+- Configurable encoder direction inversion
 
-## 📁 Project Structure
-```
-UVExpose
-├─ Core
-│  ├─ App
-│  ├─ Services
-│  ├─ Safety
-│  ├─ Display
-│  ├─ UI
-│  └─ Drivers
-├─ Drivers (STM32 HAL + CMSIS)
-├─ Schematics
-├─ Demonstration
-├─ CONFIG_GUIDE.md
-└─ UVExpose.ioc
-```
-The project is generated and configured using STM32CubeMX and built in STM32CubeIDE.
+## Architecture
 
-## ⚙️ Hardware Platform
-### MCU
+- `App`: high-level process loop and FSM glue (`app_controller`)
+- `Services`: exposure, presets, settings, battery, power, buzzer, ADC, timers
+- `Safety`: lid protection logic (`safety_manager`)
+- `UI`: menu system and screens
+- `Display`: SSD1306 rendering helpers
+- `Drivers`: encoder and low-level device drivers
 
-- STM32F103C6 (ARM Cortex-M3)
-- Internal Flash used for settings and presets
+## Schematics
 
-### Peripherals
+![UVExpose schematic](Demonstration/UV_Expose.svg)
 
-- SSD1306 OLED display (I2C)
-- Rotary encoder with push button
-- Hall effect sensor for lid detection
-- Buzzer
-- Battery voltage divider
-- MOSFET-controlled UV LED channel
+Schematic and hardware files:
 
-## 🔌 Schematics
+- [Demonstration/UV_Expose.svg](Demonstration/UV_Expose.svg)
+- [Demonstration/UV_Expose.pdf](Demonstration/UV_Expose.pdf)
+- [Schematics/UV_Expose/UV_Expose.kicad_sch](Schematics/UV_Expose/UV_Expose.kicad_sch)
+- [Schematics/UV_Expose/UV_Expose.kicad_pcb](Schematics/UV_Expose/UV_Expose.kicad_pcb)
+- [Schematics/UV_Expose/UV_Expose.kicad_pro](Schematics/UV_Expose/UV_Expose.kicad_pro)
+- [Schematics/UV_Expose/UV_Expose.svg](Schematics/UV_Expose/UV_Expose.svg)
+- [Schematics/UV_Expose/UV_Expose.pdf](Schematics/UV_Expose/UV_Expose.pdf)
 
-The hardware schematic provides a detailed view of the components and connections.
+## Battery Policy (Current Behavior)
 
-![Schematic](Demonstration/UV_Expose.svg)
+Battery thresholds are configured in `Core/Inc/config.h`.
 
-## 🔋 Battery Support
+- `BATTERY_WARNING_MV`: warning level
+- `BATTERY_EXPOSURE_LOCK_MV`: below this level exposure start is blocked
+- `BATTERY_CRITICAL_MV`: critical level for forced sleep
+- `BATTERY_HYSTERESIS_MV`: hysteresis for lock/critical recovery
+- `BATTERY_CRITICAL_SLEEP_DELAY_MS`: warning delay before entering sleep
 
-The firmware supports configurable battery configurations:
+Runtime behavior:
 
-- Adjustable voltage divider ratio
-- Configurable nominal voltage
-- Configurable undervoltage cutoff
-- Sleep on low battery
-- Flash-safe configuration storage
+1. If voltage is below low threshold, starting exposure is blocked (with hysteresis).
+2. If voltage reaches critical threshold, exposure is stopped and the UI shows `Battery critical`.
+3. After delay (`BATTERY_CRITICAL_SLEEP_DELAY_MS`), device enters STOP sleep.
+4. On wake, battery is checked again; if still critical, the cycle repeats.
 
-This allows adaptation to:
+Debug bypass flags:
 
-- Li-ion single cell
-- Multi-cell packs
-- Custom battery configurations
+- `IGNORE_BATTERY_LOW`
+- `IGNORE_BATTERY_CRITICAL`
 
-## 💾 Data Storage
+Set both to `0` for normal production behavior.
 
-Internal Flash memory is used for:
+## Preset Storage
 
-- Device settings
-- Exposure presets
-- Configuration parameters
+Presets are stored on a dedicated Flash page via append-only journal records.
 
-Features:
+- Identity fields: `minutes`, `seconds`, `buzzer_mode`, `until_off`
+- Duplicate presets are not saved
+- Delete appends a tombstone record (`active=0`)
+- Page erase happens only during GC when needed
+- Active presets are rebuilt into RAM by replay at startup
 
-- Wear-safe storage strategy
-- Validation on load
-- Persistent across power cycles
+Storage layout:
 
-### Preset Storage (Detailed)
+- `PRESETS_FLASH_ADDR`: presets page
+- `SETTINGS_FLASH_ADDR`: settings page
+- `PRESETS_MAX_COUNT`: logical UI/RAM limit
 
-Presets are handled by a dedicated `presets_service` and stored on a separate Flash page from `settings_service`.
+## Settings Storage
 
-- `settings_service`: one settings struct, full-page erase + rewrite
-- `presets_service`: append-only journal of preset operations
-- common low-level API for both: `flash_storage`
+`settings_service` stores one `settings_t` structure in its own Flash page.
 
-#### Preset identity and deduplication
+- Save operation: erase page + rewrite struct
+- Load operation: CRC validation
+- If settings are invalid, defaults from `SETTINGS_DEFAULT_*` macros are used
 
-A preset is uniquely defined by:
+Important note:
 
-- `minutes` (0..99)
-- `seconds` (0..59)
-- `buzzer_mode` (`silent`, `single`, `multiple`)
-- `until_off` (`false` / `true`)
+- `SETTINGS_DEFAULT_*` values are applied only when stored settings are invalid/empty.
+- If you already have valid settings in Flash, changing defaults alone will not override them.
 
-If all fields match an existing active preset, the new one is not saved.
+## Debug LED
 
-#### Flash record format
+Debug LED behavior is enabled only when `DEBUG == 1` in `config.h`.
 
-Logical record payload:
+- Startup: blink 3 times
+- Entering STOP: LED ON
+- Wake from STOP: LED OFF
 
-- `minutes` (1 byte)
-- `seconds` (1 byte)
-- `flags` (1 byte)
+With `DEBUG == 0`, this behavior is disabled.
 
-`flags` bit layout:
+## Encoder
 
-- bit `0..1`: buzzer mode
-- bit `2`: `until_off`
-- bit `3`: `active` (`1` = active preset, `0` = delete tombstone)
-- bit `4..7`: reserved for future extensions
+- Button debounce is configured by `ENCODER_BUTTON_DEBOUNCE_MS`
+- Rotation direction can be inverted by `ENCODER_INVERT_DIRECTION`:
+  - `0`: normal
+  - `1`: inverted
 
-STM32F1 writes are half-word aligned, so storage uses a 4-byte physical record (`3-byte payload + 1-byte pad`).
+## Display Burn-in Protection
 
-#### Journal behavior
+When burn-in protection setting is enabled (`g_settings.burn_in_protection`), UI elements can move slightly.
 
-- Add preset: append record with `active=1`
-- Delete preset: append tombstone record with same preset fields and `active=0`
-- No page erase on normal add/delete operations
+Menu movement is configurable in `config.h`:
 
-On boot, `Presets_Init()` replays records from the start of the page up to the first erased slot:
+- `SCREEN_MENU_BURNIN_SHIFT_MAX_X`
+- `SCREEN_MENU_BURNIN_SHIFT_MAX_Y`
+- `SCREEN_MENU_BURNIN_STEP_MS`
 
-- active record -> add/update preset in RAM
-- tombstone record -> remove preset from RAM
-
-RAM list is the source for UI rendering and selection.
-
-#### Garbage collection (GC)
-
-GC runs only when the journal page is full and deleted history exists:
-
-1. collect active presets from RAM
-2. erase presets page
-3. rewrite only active presets contiguously
-4. continue appending new records
-
-If page is full and cannot be compacted, save returns `FULL` and preset is not stored.
-
-#### Capacity and limits
-
-- physical journal capacity: `PRESETS_FLASH_PAGE_SIZE / 4` records
-- logical active preset limit for UI: `PRESETS_MAX_COUNT` (currently `64`)
-
-#### Power-loss robustness
-
-Append-only replay is resilient for embedded power-loss cases:
-
-- old committed data remains valid
-- partial tail write is ignored during replay
-- current state is reconstructed from committed journal records
-
-## 💤 Power Management
-
-The system implements power optimization strategies:
-
-- Sleep mode after inactivity
-- Peripheral shutdown before sleep
-- Wake-up via external interrupt
-- Configurable power policies
-
-### Debug LED behavior (`LED_Debug`)
-
-`LED_Debug` is used only in `DEBUG` builds (`#ifdef DEBUG`):
-
-- On startup, MCU blinks `LED_Debug` 3 times.
-- Right before entering STOP sleep, `LED_Debug` is turned ON.
-- Immediately after wake-up from STOP, `LED_Debug` is turned OFF.
-
-In non-DEBUG (release) builds, this logic is disabled and does not affect runtime behavior.
-
-## 🔔 Buzzer Behavior
-
-The buzzer service supports multiple notification strategies:
-
-| Mode       | Behavior                             |
-|------------|--------------------------------------|
-| SINGLE     | One beep after exposure              |
-| CONTINUOUS | Repeating alarm until user action    |
-| SILENT     | No sound output                      |
-
-## 🖥️ Build & Flash
-### Requirements
-
-- STM32CubeIDE
-- STM32CubeMX
-- ST-Link programmer OR UART bootloader
-
-### Build Steps
+## Build and Flash
 
 1. Open project in STM32CubeIDE
-2. Generate code if needed via CubeMX
-3. Build project
-4. Flash using ST-Link or system bootloader
+2. Regenerate code from `.ioc` if needed
+3. Build
+4. Flash via ST-Link
 
-## 🧩 Design Goals
+If linker/data page mapping was changed, do full erase before first run to avoid stale settings/presets conflicts.
 
-This firmware is designed with the following priorities:
+## Documentation
 
-- Clear modular architecture
-- Hardware abstraction
-- Deterministic behavior
-- Safety-first operation
-- Easy extension
-- Embedded best practices
+- [CONFIG_GUIDE.md](CONFIG_GUIDE.md): detailed `config.h` reference
+- [Core/Inc/config.h](Core/Inc/config.h): main firmware configuration
+- [UVExpose.ioc](UVExpose.ioc): STM32CubeMX project file
+- Source comments: implementation details
 
-The structure is intentionally scalable to support:
+## License
 
-- multiple sensors per channel
-- additional exposure channels
-- expanded UI functionality
-
-## 📚 Documentation
-
-- `CONFIG_GUIDE.md` — configuration reference
-- Source code comments — implementation details
-- `Schematics` — hardware design
-
-## 🛠️ Future Improvements
-
-Planned enhancements include:
-
-- Multi-channel exposure control
-- Advanced battery estimation
-- Temperature regulation loop
-- External sensor support
-- Improved UI navigation
-- Data logging capability
-
-## 📜 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-<details>
-<summary>Full License Text</summary>
-
-```
-MIT License
-
-Copyright (c) 2026 Kiryl Alishkevich
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-</details>
+MIT License. See `LICENSE`.

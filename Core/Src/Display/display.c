@@ -14,6 +14,7 @@
 #include "config.h"
 #include "Services/settings_service.h"
 #include "Helpers/simple_formatters.h"
+#include "stm32f1xx_hal.h"
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -64,6 +65,17 @@ typedef struct {
 } MenuLayout_t;
 
 #define INVALID_COLUMN_INDEX 255
+
+typedef struct {
+    int8_t x;
+    int8_t y;
+    int8_t dx;
+    int8_t dy;
+    uint8_t initialized;
+    uint32_t last_step_ms;
+} MenuBurnInState_t;
+
+static MenuBurnInState_t menu_burnin_state = {0};
 
 // Display Timer configuration - imported from config.h
 #define TIMER_FONT &Font_16x26
@@ -355,6 +367,80 @@ static uint16_t display_menu_preprocess_items(char (*options_list)[16], uint8_t 
 }
 
 // Helper function to draw menu items and highlights
+static void display_menu_get_burnin_offset(
+    const MenuLayout_t* layout,
+    uint8_t uniform_rect_x,
+    uint16_t uniform_rect_width,
+    int8_t* out_x,
+    int8_t* out_y
+) {
+    *out_x = 0;
+    *out_y = 0;
+
+    if (!g_settings.burn_in_protection) {
+        menu_burnin_state.initialized = 0;
+        return;
+    }
+
+    int16_t free_left = uniform_rect_x;
+    int16_t free_right = (int16_t)layout->effective_screen_width - ((int16_t)uniform_rect_x + (int16_t)uniform_rect_width);
+
+    uint16_t menu_content_height = (uint16_t)layout->actual_visible_items * (uint16_t)layout->item_height;
+    int16_t free_top = (int16_t)layout->start_y - (int16_t)layout->display_area_y_start;
+    int16_t free_bottom = (int16_t)layout->display_area_height - (int16_t)menu_content_height - free_top;
+
+    int8_t max_left = (int8_t)MIN((int16_t)SCREEN_MENU_BURNIN_SHIFT_MAX_X, MAX((int16_t)0, free_left));
+    int8_t max_right = (int8_t)MIN((int16_t)SCREEN_MENU_BURNIN_SHIFT_MAX_X, MAX((int16_t)0, free_right));
+    int8_t max_up = (int8_t)MIN((int16_t)SCREEN_MENU_BURNIN_SHIFT_MAX_Y, MAX((int16_t)0, free_top));
+    int8_t max_down = (int8_t)MIN((int16_t)SCREEN_MENU_BURNIN_SHIFT_MAX_Y, MAX((int16_t)0, free_bottom));
+
+    if ((max_left == 0 && max_right == 0) && (max_up == 0 && max_down == 0)) {
+        menu_burnin_state.initialized = 0;
+        return;
+    }
+
+    if (!menu_burnin_state.initialized) {
+        menu_burnin_state.x = 0;
+        menu_burnin_state.y = 0;
+        menu_burnin_state.dx = 1;
+        menu_burnin_state.dy = 1;
+        menu_burnin_state.last_step_ms = HAL_GetTick();
+        menu_burnin_state.initialized = 1;
+    }
+
+    if (menu_burnin_state.x > max_right) menu_burnin_state.x = max_right;
+    if (menu_burnin_state.x < -max_left) menu_burnin_state.x = -max_left;
+    if (menu_burnin_state.y > max_down) menu_burnin_state.y = max_down;
+    if (menu_burnin_state.y < -max_up) menu_burnin_state.y = -max_up;
+
+    uint32_t now = HAL_GetTick();
+    if ((now - menu_burnin_state.last_step_ms) >= SCREEN_MENU_BURNIN_STEP_MS) {
+        menu_burnin_state.last_step_ms = now;
+
+        menu_burnin_state.x += menu_burnin_state.dx;
+        menu_burnin_state.y += menu_burnin_state.dy;
+
+        if (menu_burnin_state.x >= max_right) {
+            menu_burnin_state.x = max_right;
+            menu_burnin_state.dx = -1;
+        } else if (menu_burnin_state.x <= -max_left) {
+            menu_burnin_state.x = -max_left;
+            menu_burnin_state.dx = 1;
+        }
+
+        if (menu_burnin_state.y >= max_down) {
+            menu_burnin_state.y = max_down;
+            menu_burnin_state.dy = -1;
+        } else if (menu_burnin_state.y <= -max_up) {
+            menu_burnin_state.y = -max_up;
+            menu_burnin_state.dy = 1;
+        }
+    }
+
+    *out_x = menu_burnin_state.x;
+    *out_y = menu_burnin_state.y;
+}
+
 static void display_menu_draw_items_with_column(
     char display_strings[][16 + 1],
     uint8_t options_count,
@@ -367,17 +453,22 @@ static void display_menu_draw_items_with_column(
     layout->uniform_rect_x = (layout->effective_screen_width - layout->uniform_rect_width) / 2;
     layout->uniform_rect_x = MAX(0, layout->uniform_rect_x);
 
-    uint8_t current_y = layout->start_y;
+    int8_t burnin_x = 0;
+    int8_t burnin_y = 0;
+    display_menu_get_burnin_offset(layout, layout->uniform_rect_x, layout->uniform_rect_width, &burnin_x, &burnin_y);
+
+    uint8_t current_y = (uint8_t)((int16_t)layout->start_y + (int16_t)burnin_y);
 
     for (uint8_t i = 0; i < layout->actual_visible_items; i++) {
         uint8_t option_index = layout->clamped_scroll_offset + i;
         char* current_option_to_display = display_strings[i];
         uint16_t current_item_text_width = strlen(current_option_to_display) * MENU_TEXT_WIDTH;
 
-        uint8_t text_x = layout->uniform_rect_x + HIGHLIGHT_PADDING_X + (current_max_item_text_width - current_item_text_width) / 2;
+        uint8_t text_x = (uint8_t)((int16_t)layout->uniform_rect_x + (int16_t)burnin_x + (int16_t)HIGHLIGHT_PADDING_X +
+                                   (int16_t)(current_max_item_text_width - current_item_text_width) / 2);
 
         if (option_index == selected) {
-            uint8_t rect_x = layout->uniform_rect_x;
+            uint8_t rect_x = (uint8_t)((int16_t)layout->uniform_rect_x + (int16_t)burnin_x);
             uint8_t rect_y = current_y - HIGHLIGHT_PADDING_Y;
             uint8_t rect_width = layout->uniform_rect_width;
             uint8_t rect_height = MENU_TEXT_HEIGHT + (2 * HIGHLIGHT_PADDING_Y);

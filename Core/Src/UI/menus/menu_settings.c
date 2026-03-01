@@ -38,10 +38,6 @@ static const char* sleep_options[] = {
 };
 
 
-// Thresholds for linear Hall sensor (millivolts), initialized from config defaults
-static uint16_t lid_open_threshold_mv = LID_HALL_OPEN_THRESHOLD_MV;
-static uint16_t lid_close_threshold_mv = LID_HALL_CLOSE_THRESHOLD_MV;
-
 static char items[ITEM_COUNT][16] = {
     "+Burn-in prot.",
     "Sleep after 2m",

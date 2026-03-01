@@ -76,6 +76,9 @@ extern "C" {
 #define SCREEN_MENU_TEXT_HEIGHT          10
 #define SCREEN_MENU_TEXT_WIDTH           7
 #define SCREEN_MENU_PADDING              1
+#define SCREEN_MENU_BURNIN_SHIFT_MAX_X   2
+#define SCREEN_MENU_BURNIN_SHIFT_MAX_Y   2
+#define SCREEN_MENU_BURNIN_STEP_MS       5000u
 
 /**
  * Timer display configuration
@@ -91,12 +94,6 @@ extern "C" {
  * ============================================================================ */
 
 /**
- * Single beep duration when user triggers a beep
- * in milliseconds
- */
-#define BUZZER_SINGLE_BEEP_DURATION    300
-
-/**
  * Repeated beep period (complete on+off cycle)
  * in milliseconds
  */
@@ -108,17 +105,6 @@ extern "C" {
  */
 #define BUZZER_REPEAT_BEEP_ON_TIME     200
 
-/**
- * Default number of beeps for beep pattern mode
- */
-#define BUZZER_DEFAULT_BEEP_COUNT      1
-
-/**
- * Default period (silence between beeps) for multi-beep pattern
- * in milliseconds
- */
-#define BUZZER_DEFAULT_BEEP_PERIOD     200
-
 /* ============================================================================
  * ENCODER CONFIGURATION
  * ============================================================================ */
@@ -128,6 +114,25 @@ extern "C" {
  * in milliseconds
  */
 #define ENCODER_BUTTON_DEBOUNCE_MS     20
+
+/**
+ * Encoder direction inversion.
+ * 0 = normal direction, 1 = inverted direction.
+ */
+#define ENCODER_INVERT_DIRECTION        1
+
+/* ============================================================================
+ * SETTINGS DEFAULTS (stored in Flash by settings_service)
+ * ============================================================================ */
+
+#define SETTINGS_DEFAULT_BURN_IN_PROTECTION     1u
+#define SETTINGS_DEFAULT_OPEN_LID_PROTECTION    1u
+#define SETTINGS_DEFAULT_BEEP_COUNT             1u
+#define SETTINGS_DEFAULT_BEEP_DURATION_MS       300u
+#define SETTINGS_DEFAULT_BEEP_PERIOD_MS         200u
+#define SETTINGS_DEFAULT_SLEEP_MODE             1u   /* 2 minutes in current menu mapping */
+#define SETTINGS_DEFAULT_LID_OPEN_THRESHOLD_MV  2000u
+#define SETTINGS_DEFAULT_LID_CLOSE_THRESHOLD_MV 1800u
 
 /* ============================================================================
  * PROTECTION AND SAFETY SETTINGS
@@ -139,11 +144,6 @@ extern "C" {
  * Default: active-high (GPIO_PIN_SET)
  */
 #define LID_HALL_ACTIVE_LEVEL          GPIO_PIN_SET
-
-/**
- * Enable lid-open protection by default. UI option in settings overrides this at runtime.
- */
-#define ENABLE_LID_PROTECTION_DEFAULT  1
 
 /* -------------------------------------------------------------------------- */
 /* Linear Hall / ADC configuration                                              */
@@ -183,29 +183,9 @@ extern "C" {
 #define DIVIDER_R_TOP                  68000u /* Rtop in ohms */
 #define DIVIDER_R_BOTTOM               68000u /* Rbottom in ohms */
 
-/**
- * Default thresholds for linear Hall sensor in millivolts.
- * Typical polarity: `OPEN` > `CLOSE`.
- * Inverted polarity is also supported by the runtime logic (`OPEN` < `CLOSE`).
- */
-#define LID_HALL_OPEN_THRESHOLD_MV     2000u
-#define LID_HALL_CLOSE_THRESHOLD_MV    1800u
-
 /* ============================================================================
  * POWER MANAGEMENT
  * ============================================================================ */
-
-/**
- * Idle timeout before display dims/turns off
- * in milliseconds (0 = disabled)
- */
-#define IDLE_TIMEOUT_MS                60000  // 60 seconds
-
-/**
- * Auto-dimming brightness level (0-255)
- * when idle
- */
-#define IDLE_BRIGHTNESS_LEVEL          50
 
 /* ============================================================================
  * BATTERY MONITORING CONFIGURATION
@@ -265,8 +245,8 @@ extern "C" {
  * Debug bypass flags for battery protections.
  * 0 = normal behavior, 1 = ignore protection.
  */
-#define IGNORE_BATTERY_LOW       0
-#define IGNORE_BATTERY_CRITICAL  0
+#define IGNORE_BATTERY_LOW       1
+#define IGNORE_BATTERY_CRITICAL  1
 
 /**
  * Software hysteresis to prevent rapid state changes near a threshold.
@@ -299,6 +279,26 @@ extern "C" {
 
 #if ((IGNORE_BATTERY_CRITICAL != 0) && (IGNORE_BATTERY_CRITICAL != 1))
 #error "IGNORE_BATTERY_CRITICAL must be 0 or 1"
+#endif
+
+#if ((SETTINGS_DEFAULT_BURN_IN_PROTECTION != 0) && (SETTINGS_DEFAULT_BURN_IN_PROTECTION != 1))
+#error "SETTINGS_DEFAULT_BURN_IN_PROTECTION must be 0 or 1"
+#endif
+
+#if ((SETTINGS_DEFAULT_OPEN_LID_PROTECTION != 0) && (SETTINGS_DEFAULT_OPEN_LID_PROTECTION != 1))
+#error "SETTINGS_DEFAULT_OPEN_LID_PROTECTION must be 0 or 1"
+#endif
+
+#if (SETTINGS_DEFAULT_BEEP_COUNT < 1u) || (SETTINGS_DEFAULT_BEEP_COUNT > 10u)
+#error "SETTINGS_DEFAULT_BEEP_COUNT must be in range 1..10"
+#endif
+
+#if (SETTINGS_DEFAULT_SLEEP_MODE > 5u)
+#error "SETTINGS_DEFAULT_SLEEP_MODE must be in range 0..5"
+#endif
+
+#if ((ENCODER_INVERT_DIRECTION != 0) && (ENCODER_INVERT_DIRECTION != 1))
+#error "ENCODER_INVERT_DIRECTION must be 0 or 1"
 #endif
 
 /* ============================================================================

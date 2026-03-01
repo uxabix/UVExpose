@@ -2,7 +2,6 @@
 #include "Services/flash_storage.h"
 #include "config.h"
 
-#include <stdbool.h>
 #include <string.h>
 
 settings_t g_settings;
@@ -50,14 +49,14 @@ void Settings_Init(void)
     if (!Settings_Load(&g_settings))
     {
         // Settings are not valid, load defaults
-        g_settings.burn_in_protection = true;
-        g_settings.open_lid_protection = true;
-        g_settings.beep_count = 1;
-        g_settings.beep_duration = 300;
-        g_settings.beep_period = 200;
-        g_settings.sleep_mode = 1; // 2 minutes
-        g_settings.lid_open_threshold_mv = LID_HALL_OPEN_THRESHOLD_MV;
-        g_settings.lid_close_threshold_mv = LID_HALL_CLOSE_THRESHOLD_MV;
+        g_settings.burn_in_protection = SETTINGS_DEFAULT_BURN_IN_PROTECTION;
+        g_settings.open_lid_protection = SETTINGS_DEFAULT_OPEN_LID_PROTECTION;
+        g_settings.beep_count = SETTINGS_DEFAULT_BEEP_COUNT;
+        g_settings.beep_duration = SETTINGS_DEFAULT_BEEP_DURATION_MS;
+        g_settings.beep_period = SETTINGS_DEFAULT_BEEP_PERIOD_MS;
+        g_settings.sleep_mode = SETTINGS_DEFAULT_SLEEP_MODE;
+        g_settings.lid_open_threshold_mv = SETTINGS_DEFAULT_LID_OPEN_THRESHOLD_MV;
+        g_settings.lid_close_threshold_mv = SETTINGS_DEFAULT_LID_CLOSE_THRESHOLD_MV;
 
         Settings_Save(&g_settings);
     }

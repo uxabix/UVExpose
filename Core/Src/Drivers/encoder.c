@@ -9,9 +9,10 @@
 #include <tim.h>
 
 #include "Drivers/encoder.h"
+#include "config.h"
 
 
-#define BUTTON_DEBOUNCE_MS 20
+#define BUTTON_DEBOUNCE_MS ENCODER_BUTTON_DEBOUNCE_MS
 #define BUTTON_LONG_MS     800
 
 static uint8_t short_press = 0;
@@ -83,12 +84,20 @@ encoder_direction_t Encoder_GetDirection(void)
     if(accumulator >= 4)
     {
         accumulator = 0;
+#if (ENCODER_INVERT_DIRECTION == 1)
+        return ENCODER_CCW;
+#else
         return ENCODER_CW;
+#endif
     }
     else if(accumulator <= -4)
     {
         accumulator = 0;
+#if (ENCODER_INVERT_DIRECTION == 1)
+        return ENCODER_CW;
+#else
         return ENCODER_CCW;
+#endif
     }
 
     return ENCODER_NONE;
