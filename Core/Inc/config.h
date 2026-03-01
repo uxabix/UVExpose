@@ -53,7 +53,7 @@ extern "C" {
 /**
  * Top bar configuration (status area)
  */
-#define SCREEN_TOP_BAR_HEIGHT      9
+#define SCREEN_TOP_BAR_HEIGHT      17
 #define SCREEN_TOP_BAR_PADDING     1
 
 /**
@@ -61,8 +61,8 @@ extern "C" {
  */
 #define SCREEN_BATTERY_POS_X       0
 #define SCREEN_BATTERY_POS_Y       0
-#define SCREEN_BATTERY_SEGMENT_WIDTH   4
-#define SCREEN_BATTERY_SEGMENT_HEIGHT  6
+#define SCREEN_BATTERY_SEGMENT_WIDTH   5
+#define SCREEN_BATTERY_SEGMENT_HEIGHT  8
 #define SCREEN_BATTERY_PROTECTION_STEP_X  5
 #define SCREEN_BATTERY_PROTECTION_STEP_Y  1
 
@@ -166,6 +166,14 @@ extern "C" {
 /** ADC reference voltage (millivolts) and ADC resolution (max code) */
 #define ADC_VREF_MV                    3300u
 #define ADC_RESOLUTION_MAX             4095u
+
+/**
+ * Global ADC voltage correction in millivolts.
+ * Applied in AdcService_RawToMv() for all ADC-based measurements.
+ * Positive value increases measured voltage, negative decreases it.
+ * Example: if readings are ~220mV too low, set to +220.
+ */
+#define ADC_GLOBAL_OFFSET_MV           220
 
 /**
  * Voltage divider present on sensor output (0 = no divider, 1 = divider present)

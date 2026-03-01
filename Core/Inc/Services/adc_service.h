@@ -35,7 +35,8 @@ uint16_t AdcService_ReadChannel(uint32_t channel);
 /**
  * @brief Converts a raw ADC value to millivolts.
  * This is a utility function to centralize the conversion logic based
- * on the system's VREF and ADC resolution defined in config.h.
+ * on the system's VREF, ADC resolution, and global ADC offset
+ * defined in config.h.
  *
  * @param raw_adc The raw value from an ADC conversion.
  * @return The corresponding voltage in millivolts (mV).

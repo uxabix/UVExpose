@@ -55,5 +55,14 @@ uint16_t AdcService_ReadChannel(uint32_t channel) {
 uint16_t AdcService_RawToMv(uint16_t raw_adc) {
     // Use a 64-bit intermediate value during multiplication to prevent overflow,
     // as (4095 * 3300) can exceed the range of a 32-bit integer.
-    return ((uint64_t)raw_adc * ADC_VREF_MV) / ADC_RESOLUTION_MAX;
+    int32_t mv = (int32_t)(((uint64_t)raw_adc * ADC_VREF_MV) / ADC_RESOLUTION_MAX);
+    mv += (int32_t)ADC_GLOBAL_OFFSET_MV;
+
+    if (mv < 0) {
+        mv = 0;
+    } else if (mv > (int32_t)ADC_VREF_MV) {
+        mv = (int32_t)ADC_VREF_MV;
+    }
+
+    return (uint16_t)mv;
 }

@@ -517,7 +517,8 @@ void ssd1306_I2C_WriteMulti(uint8_t address, uint8_t reg, uint8_t* data, uint16_
 	uint8_t i;
 	for(i = 1; i <= count; i++)
 		dt[i] = data[i-1];
-	HAL_I2C_Master_Transmit(&hi2c1, address, dt, count, 10);
+	/* Send control byte + full payload. */
+	HAL_I2C_Master_Transmit(&hi2c1, address, dt, count + 1, 10);
 }
 
 
