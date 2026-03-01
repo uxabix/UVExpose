@@ -21,6 +21,7 @@
 // Static variables to hold the service's state
 static bool s_is_initialized = false;
 static bool s_is_in_critical_hysteresis = false;
+static bool s_is_exposure_locked = false;
 
 // Last known filtered values
 static uint16_t s_voltage_mv = 0;
@@ -62,6 +63,7 @@ void BatteryService_Init(void) {
 
     s_is_initialized = true;
     s_is_in_critical_hysteresis = false;
+    s_is_exposure_locked = false;
 
     // Perform one measurement to populate initial values
     BatteryService_Measure();
@@ -95,7 +97,18 @@ void BatteryService_Measure(void) {
         s_percentage = (uint8_t)( ((uint32_t)(s_voltage_mv - BATTERY_MIN_MV) * 100) / (BATTERY_MAX_MV - BATTERY_MIN_MV) );
     }
 
-    // 6. Update battery status with hysteresis for the critical level
+    // 6. Update exposure lock state with hysteresis
+    if (s_is_exposure_locked) {
+        if (s_voltage_mv > (BATTERY_EXPOSURE_LOCK_MV + BATTERY_HYSTERESIS_MV)) {
+            s_is_exposure_locked = false;
+        }
+    } else {
+        if (s_voltage_mv <= BATTERY_EXPOSURE_LOCK_MV) {
+            s_is_exposure_locked = true;
+        }
+    }
+
+    // 7. Update battery status with hysteresis for the critical level
     uint16_t critical_threshold = BATTERY_CRITICAL_MV;
 
     if (s_is_in_critical_hysteresis) {
@@ -130,6 +143,14 @@ uint8_t BatteryService_GetPercentage(void) {
 
 BatteryStatus_t BatteryService_GetStatus(void) {
     return s_status;
+}
+
+uint8_t BatteryService_IsExposureAllowed(void) {
+#if (IGNORE_BATTERY_LOW == 1)
+    return 1u;
+#else
+    return s_is_exposure_locked ? 0u : 1u;
+#endif
 }
 
 #endif // BATTERY_SERVICE_ENABLED

@@ -15,6 +15,7 @@
 #include "UI/menus/menu_main.h"
 #include "Services/exposure_service.h"
 #include "Services/buzzer.h"
+#include "Services/battery_service.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -22,6 +23,7 @@
 // UI local state only
 static uint8_t is_infinite_mode = 0;  // 1 = "Active until off" mode, 0 = normal mode with timer
 static uint8_t buzzer_notified = 0;   // Flag to track if buzzer was notified on timer finish
+static uint8_t start_blocked_low_battery = 0; // 1 when start was blocked by battery policy
 
 // Public function to set infinite mode (called from menu_expose_mode)
 void menu_running_set_infinite_mode(uint8_t enabled)
@@ -31,6 +33,16 @@ void menu_running_set_infinite_mode(uint8_t enabled)
 
 static void on_enter(void)
 {
+    start_blocked_low_battery = 0;
+
+    BatteryService_Measure();
+    if (!BatteryService_IsExposureAllowed()) {
+        Exposure_Stop();
+        Buzzer_Stop();
+        start_blocked_low_battery = 1;
+        return;
+    }
+
     // Get settings from expose_options menu
     uint32_t exposure_time_ms = menu_expose_options_get_time_ms();
     uint8_t until_off = menu_expose_options_get_until_off();
@@ -60,6 +72,21 @@ static void on_enter(void)
 
 static void on_event(ui_event_t event)
 {
+    if (start_blocked_low_battery) {
+        switch(event)
+        {
+            case UI_EVENT_CLICK:
+                UI_SetMenu(&menu_expose_options);
+                break;
+            case UI_EVENT_LONG_CLICK:
+                UI_SetMenu(&menu_main);
+                break;
+            default:
+                break;
+        }
+        return;
+    }
+
     switch(event)
     {
         case UI_EVENT_CLICK:
@@ -91,6 +118,11 @@ static void on_event(ui_event_t event)
 
 static void on_render(void)
 {
+    if (start_blocked_low_battery) {
+        display_text_simple("Low batt, no UV");
+        return;
+    }
+
     // In infinite mode, show "Active" with floating animation
     if (is_infinite_mode && Exposure_IsRunning()) {
         display_timer_remaining(0xFFFFFFFF); // This will show the floating text "Active"

@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#define DEBUG 1
+#define DEBUG 0
 
 /* ============================================================================
  * GPIO OUTPUT LEVELS CONFIGURATION
@@ -252,7 +252,21 @@ extern "C" {
  * Voltage thresholds for safety actions.
  */
 #define BATTERY_WARNING_MV        3300u // Level to show a warning to the user
-#define BATTERY_CRITICAL_MV       3100u // Level to force shutdown/stop operations
+#define BATTERY_EXPOSURE_LOCK_MV  3100u // Below this level exposure start is blocked
+#define BATTERY_CRITICAL_MV       3000u // Level to force sleep
+
+/**
+ * Delay before entering sleep on critical battery.
+ * During this time UI shows a warning, which also helps with flashing/debug.
+ */
+#define BATTERY_CRITICAL_SLEEP_DELAY_MS 15000u
+
+/**
+ * Debug bypass flags for battery protections.
+ * 0 = normal behavior, 1 = ignore protection.
+ */
+#define IGNORE_BATTERY_LOW       0
+#define IGNORE_BATTERY_CRITICAL  0
 
 /**
  * Software hysteresis to prevent rapid state changes near a threshold.
@@ -270,6 +284,22 @@ extern "C" {
  * MUST be a power of 2 for efficient integer arithmetic (e.g., 2, 4, 8, 16).
  */
 #define BATTERY_FILTER_SAMPLES_COUNT 8
+
+#if (BATTERY_CRITICAL_MV >= BATTERY_EXPOSURE_LOCK_MV)
+#error "BATTERY_CRITICAL_MV must be lower than BATTERY_EXPOSURE_LOCK_MV"
+#endif
+
+#if (BATTERY_EXPOSURE_LOCK_MV > BATTERY_WARNING_MV)
+#error "BATTERY_EXPOSURE_LOCK_MV must be <= BATTERY_WARNING_MV"
+#endif
+
+#if ((IGNORE_BATTERY_LOW != 0) && (IGNORE_BATTERY_LOW != 1))
+#error "IGNORE_BATTERY_LOW must be 0 or 1"
+#endif
+
+#if ((IGNORE_BATTERY_CRITICAL != 0) && (IGNORE_BATTERY_CRITICAL != 1))
+#error "IGNORE_BATTERY_CRITICAL must be 0 or 1"
+#endif
 
 /* ============================================================================
  * SETTINGS STORAGE CONFIGURATION

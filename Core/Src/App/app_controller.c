@@ -20,6 +20,8 @@ static app_event_t pending_event = APP_EVENT_NONE;
 // Keep battery update logic
 static soft_timer_t battery_update_timer;
 static const uint32_t battery_update_period = 15000;  // 15 seconds
+static uint8_t critical_sleep_pending = 0u;
+static uint32_t critical_sleep_started_at_ms = 0u;
 
 // ========== FSM Public API Implementation ==========
 
@@ -153,6 +155,39 @@ void update_battery() {
 	}
 }
 
+static uint8_t enforce_critical_battery_sleep(void)
+{
+#if (IGNORE_BATTERY_CRITICAL == 1)
+    critical_sleep_pending = 0u;
+    return 0u;
+#else
+    BatteryService_Measure();
+    if (BatteryService_GetStatus() != BATTERY_STATUS_CRITICAL) {
+        critical_sleep_pending = 0u;
+        return 0u;
+    }
+
+    Exposure_Stop();
+    Buzzer_Stop();
+
+    if (!critical_sleep_pending) {
+        critical_sleep_pending = 1u;
+        critical_sleep_started_at_ms = HAL_GetTick();
+    }
+
+    display_text_simple("Battery critical");
+
+    if ((HAL_GetTick() - critical_sleep_started_at_ms) >= BATTERY_CRITICAL_SLEEP_DELAY_MS) {
+        critical_sleep_pending = 0u;
+        power_manager_sleep();
+        BatteryService_Measure();
+        display_top_bar(BatteryService_GetPercentage());
+    }
+
+    return 1u;
+#endif
+}
+
 void App_Init(ADC_HandleTypeDef* hadc)
 {
     power_manager_debug_startup_blink();
@@ -175,6 +210,10 @@ void App_Init(ADC_HandleTypeDef* hadc)
 void App_Process(void)
 {
     update_battery();
+    if (enforce_critical_battery_sleep()) {
+        Encoder_ButtonTick(); // Keep button timing coherent while warning is displayed
+        return;
+    }
     UI_Render();
     Safety_Process();  // Check lid sensor and react if needed
     Exposure_Process();  // Process exposure service

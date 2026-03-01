@@ -2,6 +2,7 @@
 #include "Services/settings_service.h"
 #include "Safety/safety_manager.h"
 #include "Display/display.h"
+#include "config.h"
 #include "main.h"
 #include <stm32f1xx_hal.h>
 
@@ -17,7 +18,7 @@ static const uint32_t sleep_timeouts_s[] = {
 };
 #define SLEEP_TIMEOUTS_COUNT (sizeof(sleep_timeouts_s) / sizeof(uint32_t))
 
-#ifdef DEBUG
+#if (DEBUG == 1)
 #define DEBUG_LED_BLINK_COUNT 3u
 #define DEBUG_LED_BLINK_ON_MS 70u
 #define DEBUG_LED_BLINK_OFF_MS 70u
@@ -65,7 +66,7 @@ void power_manager_update(void)
 
 void power_manager_sleep(void)
 {
-#ifdef DEBUG
+#if (DEBUG == 1)
     // In DEBUG build keep LED on while MCU is in STOP.
     debug_led_set(1u);
 #endif
@@ -81,7 +82,7 @@ void power_manager_sleep(void)
     display_init();
     display_on();
 
-#ifdef DEBUG
+#if (DEBUG == 1)
     // Turn off debug LED as soon as MCU wakes.
     debug_led_set(0u);
 #endif
@@ -91,7 +92,7 @@ void power_manager_sleep(void)
 
 void power_manager_debug_startup_blink(void)
 {
-#ifdef DEBUG
+#if (DEBUG == 1)
     debug_led_set(0u);
     for (uint8_t i = 0u; i < DEBUG_LED_BLINK_COUNT; ++i) {
         debug_led_set(1u);

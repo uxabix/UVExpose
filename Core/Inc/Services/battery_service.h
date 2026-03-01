@@ -63,6 +63,14 @@ uint8_t BatteryService_GetPercentage(void);
  */
 BatteryStatus_t BatteryService_GetStatus(void);
 
+/**
+ * @brief Checks whether exposure is allowed at current battery voltage.
+ * Uses lock threshold with hysteresis.
+ *
+ * @return 1 if exposure start is allowed, 0 otherwise.
+ */
+uint8_t BatteryService_IsExposureAllowed(void);
+
 #else // BATTERY_SERVICE_ENABLED == 0
 
 // If the service is disabled, define dummy (inline) functions to avoid compilation errors
@@ -70,7 +78,10 @@ BatteryStatus_t BatteryService_GetStatus(void);
 // These functions do nothing or return safe default values.
 
 typedef enum {
-    BATTERY_STATUS_OK
+    BATTERY_STATUS_OK,
+    BATTERY_STATUS_WARNING,
+    BATTERY_STATUS_CRITICAL,
+    BATTERY_STATUS_UNKNOWN
 } BatteryStatus_t;
 
 
@@ -79,6 +90,7 @@ static inline void BatteryService_Measure(void) { }
 static inline uint16_t BatteryService_GetVoltageMv(void) { return 4200; /* Return a safe, full-battery value */ }
 static inline uint8_t BatteryService_GetPercentage(void) { return 100; }
 static inline BatteryStatus_t BatteryService_GetStatus(void) { return BATTERY_STATUS_OK; }
+static inline uint8_t BatteryService_IsExposureAllowed(void) { return 1; }
 
 #endif // BATTERY_SERVICE_ENABLED
 

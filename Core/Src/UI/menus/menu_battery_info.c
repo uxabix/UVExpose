@@ -8,14 +8,15 @@
 
 #include <stdio.h>
 
-#define ITEM_COUNT 4
+#define ITEM_COUNT 5
 #define UPDATE_PERIOD_MS 400u
 
 static char items[ITEM_COUNT][16] = {
     "Volt:0mV",
     "Charge:0%",
     "U:0 L:0",
-    "Crit:0mV"
+    "Low:0 C:0",
+    "Exp:OK"
 };
 
 static uint32_t last_update_ms = 0u;
@@ -26,11 +27,13 @@ static void update_values(void)
 
     uint16_t voltage_mv = BatteryService_GetVoltageMv();
     uint8_t percentage = BatteryService_GetPercentage();
+    uint8_t exposure_allowed = BatteryService_IsExposureAllowed();
 
     snprintf(items[0], sizeof(items[0]), "Volt:%umV", (unsigned)voltage_mv);
     snprintf(items[1], sizeof(items[1]), "Charge:%u%%", (unsigned)percentage);
     snprintf(items[2], sizeof(items[2]), "U:%u L:%u", (unsigned)BATTERY_MAX_MV, (unsigned)BATTERY_MIN_MV);
-    snprintf(items[3], sizeof(items[3]), "Crit:%umV", (unsigned)BATTERY_CRITICAL_MV);
+    snprintf(items[3], sizeof(items[3]), "Low:%u C:%u", (unsigned)BATTERY_EXPOSURE_LOCK_MV, (unsigned)BATTERY_CRITICAL_MV);
+    snprintf(items[4], sizeof(items[4]), "Exp:%s", exposure_allowed ? "OK" : "LOCK");
 }
 
 static void on_enter(void)
